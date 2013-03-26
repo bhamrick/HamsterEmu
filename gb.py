@@ -7,288 +7,305 @@ class Flags:
 class gb_cpu(object):
     def __init__(self):
         # Initialize registers
-        self.A = 0
-        self.B = 0
-        self.D = 0
-        self.H = 0
-        self.F = 0
-        self.C = 0
-        self.E = 0
-        self.L = 0
-        self.SP = 0
+        self.A = 0x01
+        self.B = 0x00
+        self.D = 0x00
+        self.H = 0x01
+        self.F = 0xB0
+        self.C = 0x13
+        self.E = 0xD8
+        self.L = 0x4D
+        self.SP = 0xFFFE
         self.PC = 0x100
+        self.clock = 0
         self.halted = False
         self.interrupts = False
         self.ram = gb_ram()
         # Opcode format:
-        # (arg_lengths, func), where arg_lengths is a tuple giving the byte length of each argument
+        # (arg_lengths, func, cycles), where arg_lengths is a tuple giving the byte length of each argument
+        # cycles is the number of clock cycles the instruction takes
         self.opcodes = [
-            ((), op_00),
-            ((2), op_01),
-            ((), op_02),
-            ((), op_03),
-            ((), op_04),
-            ((), op_05),
-            ((1), op_06),
-            ((), op_07),
-            ((2), op_08),
-            ((), op_09),
-            ((), op_0A),
-            ((), op_0B),
-            ((), op_0C),
-            ((), op_0D),
-            ((1), op_0E),
-            ((), op_0F),
-            ((1), op_10),
-            ((2), op_11),
-            ((), op_12),
-            ((), op_13),
-            ((), op_14),
-            ((), op_15),
-            ((1), op_16),
-            ((), op_17),
-            ((1), op_18),
-            ((), op_19),
-            ((), op_1A),
-            ((), op_1B),
-            ((), op_1C),
-            ((), op_1D),
-            ((1), op_1E),
-            ((), op_1F),
-            ((1), op_20),
-            ((2), op_21),
-            ((), op_22),
-            ((), op_23),
-            ((), op_24),
-            ((), op_25),
-            ((1), op_26),
-            ((), op_27),
-            ((1), op_28),
-            ((), op_29),
-            ((), op_2A),
-            ((), op_2B),
-            ((), op_2C),
-            ((), op_2D),
-            ((1), op_2E),
-            ((), op_2F),
-            ((1), op_30),
-            ((2), op_31),
-            ((), op_32),
-            ((), op_33),
-            ((), op_34),
-            ((), op_35),
-            ((1), op_36),
-            ((), op_37),
-            ((1), op_38),
-            ((), op_39),
-            ((), op_3A),
-            ((), op_3B),
-            ((), op_3C),
-            ((), op_3D),
-            ((1), op_3E),
-            ((), op_3F),
-            ((), op_40),
-            ((), op_41),
-            ((), op_42),
-            ((), op_43),
-            ((), op_44),
-            ((), op_45),
-            ((), op_46),
-            ((), op_47),
-            ((), op_48),
-            ((), op_49),
-            ((), op_4A),
-            ((), op_4B),
-            ((), op_4C),
-            ((), op_4D),
-            ((), op_4E),
-            ((), op_4F),
-            ((), op_50),
-            ((), op_51),
-            ((), op_52),
-            ((), op_53),
-            ((), op_54),
-            ((), op_55),
-            ((), op_56),
-            ((), op_57),
-            ((), op_58),
-            ((), op_59),
-            ((), op_5A),
-            ((), op_5B),
-            ((), op_5C),
-            ((), op_5D),
-            ((), op_5E),
-            ((), op_5F),
-            ((), op_60),
-            ((), op_61),
-            ((), op_62),
-            ((), op_63),
-            ((), op_64),
-            ((), op_65),
-            ((), op_66),
-            ((), op_67),
-            ((), op_68),
-            ((), op_69),
-            ((), op_6A),
-            ((), op_6B),
-            ((), op_6C),
-            ((), op_6D),
-            ((), op_6E),
-            ((), op_6F),
-            ((), op_70),
-            ((), op_71),
-            ((), op_72),
-            ((), op_73),
-            ((), op_74),
-            ((), op_75),
-            ((), op_76),
-            ((), op_77),
-            ((), op_78),
-            ((), op_79),
-            ((), op_7A),
-            ((), op_7B),
-            ((), op_7C),
-            ((), op_7D),
-            ((), op_7E),
-            ((), op_7F),
-            ((), op_80),
-            ((), op_81),
-            ((), op_82),
-            ((), op_83),
-            ((), op_84),
-            ((), op_85),
-            ((), op_86),
-            ((), op_87),
-            ((), op_88),
-            ((), op_89),
-            ((), op_8A),
-            ((), op_8B),
-            ((), op_8C),
-            ((), op_8D),
-            ((), op_8E),
-            ((), op_8F),
-            ((), op_90),
-            ((), op_91),
-            ((), op_92),
-            ((), op_93),
-            ((), op_94),
-            ((), op_95),
-            ((), op_96),
-            ((), op_97),
-            ((), op_98),
-            ((), op_99),
-            ((), op_9A),
-            ((), op_9B),
-            ((), op_9C),
-            ((), op_9D),
-            ((), op_9E),
-            ((), op_9F),
-            ((), op_A0),
-            ((), op_A1),
-            ((), op_A2),
-            ((), op_A3),
-            ((), op_A4),
-            ((), op_A5),
-            ((), op_A6),
-            ((), op_A7),
-            ((), op_A8),
-            ((), op_A9),
-            ((), op_AA),
-            ((), op_AB),
-            ((), op_AC),
-            ((), op_AD),
-            ((), op_AE),
-            ((), op_AF),
-            ((), op_B0),
-            ((), op_B1),
-            ((), op_B2),
-            ((), op_B3),
-            ((), op_B4),
-            ((), op_B5),
-            ((), op_B6),
-            ((), op_B7),
-            ((), op_B8),
-            ((), op_B9),
-            ((), op_BA),
-            ((), op_BB),
-            ((), op_BC),
-            ((), op_BD),
-            ((), op_BE),
-            ((), op_BF),
-            ((), op_C0),
-            ((), op_C1),
-            ((2), op_C2),
-            ((2), op_C3),
-            ((2), op_C4),
-            ((), op_C5),
-            ((1), op_C6),
-            ((), op_C7),
-            ((), op_C8),
-            ((), op_C9),
-            ((2), op_CA),
-            ((1), op_CB),
-            ((2), op_CC),
-            ((2), op_CD),
-            ((1), op_CE),
-            ((), op_CF),
-            ((), op_D0),
-            ((), op_D1),
-            ((2), op_D2),
-            ((), op_D3),
-            ((2), op_D4),
-            ((), op_D5),
-            ((1), op_D6),
-            ((), op_D7),
-            ((), op_D8),
-            ((), op_D9),
-            ((2), op_DA),
-            ((), op_DB),
-            ((2), op_DC),
-            ((), op_DD),
-            ((), op_DE),
-            ((), op_DF),
-            ((1), op_E0),
-            ((), op_E1),
-            ((), op_E2),
-            ((), op_E3),
-            ((), op_E4),
-            ((), op_E5),
-            ((1), op_E6),
-            ((), op_E7),
-            ((1), op_E8),
-            ((), op_E9),
-            ((2), op_EA),
-            ((), op_EB),
-            ((), op_EC),
-            ((), op_ED),
-            ((1), op_EE),
-            ((), op_EF),
-            ((1), op_F0),
-            ((), op_F1),
-            ((), op_F2),
-            ((), op_F3),
-            ((), op_F4),
-            ((), op_F5),
-            ((1), op_F6),
-            ((), op_F7),
-            ((1), op_F8),
-            ((), op_F9),
-            ((2), op_FA),
-            ((), op_FB),
-            ((), op_FC),
-            ((), op_FD),
-            ((1), op_FE),
-            ((), op_FF),
+            ((), gb_cpu.op_00, 4),
+            ((2,), gb_cpu.op_01, 12),
+            ((), gb_cpu.op_02, 8),
+            ((), gb_cpu.op_03, 8),
+            ((), gb_cpu.op_04, 4),
+            ((), gb_cpu.op_05, 4),
+            ((1,), gb_cpu.op_06, 8),
+            ((), gb_cpu.op_07, 4),
+            ((2,), gb_cpu.op_08, 20),
+            ((), gb_cpu.op_09, 8),
+            ((), gb_cpu.op_0A, 8),
+            ((), gb_cpu.op_0B, 8),
+            ((), gb_cpu.op_0C, 4),
+            ((), gb_cpu.op_0D, 4),
+            ((1,), gb_cpu.op_0E, 8),
+            ((), gb_cpu.op_0F, 4),
+            ((1,), gb_cpu.op_10, 4),
+            ((2,), gb_cpu.op_11, 12),
+            ((), gb_cpu.op_12, 8),
+            ((), gb_cpu.op_13, 8),
+            ((), gb_cpu.op_14, 4),
+            ((), gb_cpu.op_15, 4),
+            ((1,), gb_cpu.op_16, 8),
+            ((), gb_cpu.op_17, 4),
+            ((1,), gb_cpu.op_18, 8),
+            ((), gb_cpu.op_19, 8),
+            ((), gb_cpu.op_1A, 8),
+            ((), gb_cpu.op_1B, 8),
+            ((), gb_cpu.op_1C, 4),
+            ((), gb_cpu.op_1D, 4),
+            ((1,), gb_cpu.op_1E, 8),
+            ((), gb_cpu.op_1F, 4),
+            ((1,), gb_cpu.op_20, 8),
+            ((2,), gb_cpu.op_21, 12),
+            ((), gb_cpu.op_22, 8),
+            ((), gb_cpu.op_23, 8),
+            ((), gb_cpu.op_24, 4),
+            ((), gb_cpu.op_25, 4),
+            ((1,), gb_cpu.op_26, 8),
+            ((), gb_cpu.op_27, 4),
+            ((1,), gb_cpu.op_28, 8),
+            ((), gb_cpu.op_29, 8),
+            ((), gb_cpu.op_2A, 8),
+            ((), gb_cpu.op_2B, 8),
+            ((), gb_cpu.op_2C, 4),
+            ((), gb_cpu.op_2D, 4),
+            ((1,), gb_cpu.op_2E, 8),
+            ((), gb_cpu.op_2F, 4),
+            ((1,), gb_cpu.op_30, 8),
+            ((2,), gb_cpu.op_31, 12),
+            ((), gb_cpu.op_32, 8),
+            ((), gb_cpu.op_33, 8),
+            ((), gb_cpu.op_34, 12),
+            ((), gb_cpu.op_35, 12),
+            ((1,), gb_cpu.op_36, 12),
+            ((), gb_cpu.op_37, 4),
+            ((1,), gb_cpu.op_38, 8),
+            ((), gb_cpu.op_39, 8),
+            ((), gb_cpu.op_3A, 8),
+            ((), gb_cpu.op_3B, 8),
+            ((), gb_cpu.op_3C, 4),
+            ((), gb_cpu.op_3D, 4),
+            ((1,), gb_cpu.op_3E, 8),
+            ((), gb_cpu.op_3F, 4),
+            ((), gb_cpu.op_40, 4),
+            ((), gb_cpu.op_41, 4),
+            ((), gb_cpu.op_42, 4),
+            ((), gb_cpu.op_43, 4),
+            ((), gb_cpu.op_44, 4),
+            ((), gb_cpu.op_45, 4),
+            ((), gb_cpu.op_46, 8),
+            ((), gb_cpu.op_47, 4),
+            ((), gb_cpu.op_48, 4),
+            ((), gb_cpu.op_49, 4),
+            ((), gb_cpu.op_4A, 4),
+            ((), gb_cpu.op_4B, 4),
+            ((), gb_cpu.op_4C, 4),
+            ((), gb_cpu.op_4D, 4),
+            ((), gb_cpu.op_4E, 8),
+            ((), gb_cpu.op_4F, 4),
+            ((), gb_cpu.op_50, 4),
+            ((), gb_cpu.op_51, 4),
+            ((), gb_cpu.op_52, 4),
+            ((), gb_cpu.op_53, 4),
+            ((), gb_cpu.op_54, 4),
+            ((), gb_cpu.op_55, 4),
+            ((), gb_cpu.op_56, 8),
+            ((), gb_cpu.op_57, 4),
+            ((), gb_cpu.op_58, 4),
+            ((), gb_cpu.op_59, 4),
+            ((), gb_cpu.op_5A, 4),
+            ((), gb_cpu.op_5B, 4),
+            ((), gb_cpu.op_5C, 4),
+            ((), gb_cpu.op_5D, 4),
+            ((), gb_cpu.op_5E, 8),
+            ((), gb_cpu.op_5F, 4),
+            ((), gb_cpu.op_60, 4),
+            ((), gb_cpu.op_61, 4),
+            ((), gb_cpu.op_62, 4),
+            ((), gb_cpu.op_63, 4),
+            ((), gb_cpu.op_64, 4),
+            ((), gb_cpu.op_65, 4),
+            ((), gb_cpu.op_66, 8),
+            ((), gb_cpu.op_67, 4),
+            ((), gb_cpu.op_68, 4),
+            ((), gb_cpu.op_69, 4),
+            ((), gb_cpu.op_6A, 4),
+            ((), gb_cpu.op_6B, 4),
+            ((), gb_cpu.op_6C, 4),
+            ((), gb_cpu.op_6D, 4),
+            ((), gb_cpu.op_6E, 8),
+            ((), gb_cpu.op_6F, 4),
+            ((), gb_cpu.op_70, 8),
+            ((), gb_cpu.op_71, 8),
+            ((), gb_cpu.op_72, 8),
+            ((), gb_cpu.op_73, 8),
+            ((), gb_cpu.op_74, 8),
+            ((), gb_cpu.op_75, 8),
+            ((), gb_cpu.op_76, 4),
+            ((), gb_cpu.op_77, 8),
+            ((), gb_cpu.op_78, 4),
+            ((), gb_cpu.op_79, 4),
+            ((), gb_cpu.op_7A, 4),
+            ((), gb_cpu.op_7B, 4),
+            ((), gb_cpu.op_7C, 4),
+            ((), gb_cpu.op_7D, 4),
+            ((), gb_cpu.op_7E, 8),
+            ((), gb_cpu.op_7F, 4),
+            ((), gb_cpu.op_80, 4),
+            ((), gb_cpu.op_81, 4),
+            ((), gb_cpu.op_82, 4),
+            ((), gb_cpu.op_83, 4),
+            ((), gb_cpu.op_84, 4),
+            ((), gb_cpu.op_85, 4),
+            ((), gb_cpu.op_86, 8),
+            ((), gb_cpu.op_87, 4),
+            ((), gb_cpu.op_88, 4),
+            ((), gb_cpu.op_89, 4),
+            ((), gb_cpu.op_8A, 4),
+            ((), gb_cpu.op_8B, 4),
+            ((), gb_cpu.op_8C, 4),
+            ((), gb_cpu.op_8D, 4),
+            ((), gb_cpu.op_8E, 8),
+            ((), gb_cpu.op_8F, 4),
+            ((), gb_cpu.op_90, 4),
+            ((), gb_cpu.op_91, 4),
+            ((), gb_cpu.op_92, 4),
+            ((), gb_cpu.op_93, 4),
+            ((), gb_cpu.op_94, 4),
+            ((), gb_cpu.op_95, 4),
+            ((), gb_cpu.op_96, 8),
+            ((), gb_cpu.op_97, 4),
+            ((), gb_cpu.op_98, 4),
+            ((), gb_cpu.op_99, 4),
+            ((), gb_cpu.op_9A, 4),
+            ((), gb_cpu.op_9B, 4),
+            ((), gb_cpu.op_9C, 4),
+            ((), gb_cpu.op_9D, 4),
+            ((), gb_cpu.op_9E, 8),
+            ((), gb_cpu.op_9F, 4),
+            ((), gb_cpu.op_A0, 4),
+            ((), gb_cpu.op_A1, 4),
+            ((), gb_cpu.op_A2, 4),
+            ((), gb_cpu.op_A3, 4),
+            ((), gb_cpu.op_A4, 4),
+            ((), gb_cpu.op_A5, 4),
+            ((), gb_cpu.op_A6, 8),
+            ((), gb_cpu.op_A7, 4),
+            ((), gb_cpu.op_A8, 4),
+            ((), gb_cpu.op_A9, 4),
+            ((), gb_cpu.op_AA, 4),
+            ((), gb_cpu.op_AB, 4),
+            ((), gb_cpu.op_AC, 4),
+            ((), gb_cpu.op_AD, 4),
+            ((), gb_cpu.op_AE, 8),
+            ((), gb_cpu.op_AF, 4),
+            ((), gb_cpu.op_B0, 4),
+            ((), gb_cpu.op_B1, 4),
+            ((), gb_cpu.op_B2, 4),
+            ((), gb_cpu.op_B3, 4),
+            ((), gb_cpu.op_B4, 4),
+            ((), gb_cpu.op_B5, 4),
+            ((), gb_cpu.op_B6, 8),
+            ((), gb_cpu.op_B7, 4),
+            ((), gb_cpu.op_B8, 4),
+            ((), gb_cpu.op_B9, 4),
+            ((), gb_cpu.op_BA, 4),
+            ((), gb_cpu.op_BB, 4),
+            ((), gb_cpu.op_BC, 4),
+            ((), gb_cpu.op_BD, 4),
+            ((), gb_cpu.op_BE, 8),
+            ((), gb_cpu.op_BF, 4),
+            ((), gb_cpu.op_C0, 8),
+            ((), gb_cpu.op_C1, 12),
+            ((2,), gb_cpu.op_C2, 12),
+            ((2,), gb_cpu.op_C3, 12),
+            ((2,), gb_cpu.op_C4, 12),
+            ((), gb_cpu.op_C5, 16),
+            ((1,), gb_cpu.op_C6, 8),
+            ((), gb_cpu.op_C7, 32),
+            ((), gb_cpu.op_C8, 8),
+            ((), gb_cpu.op_C9, 8),
+            ((2,), gb_cpu.op_CA, 12),
+            ((1,), gb_cpu.op_CB, 8), # TODO - some ops are not 8 cycles
+            ((2,), gb_cpu.op_CC, 12),
+            ((2,), gb_cpu.op_CD, 12),
+            ((1,), gb_cpu.op_CE, 8),
+            ((), gb_cpu.op_CF, 32),
+            ((), gb_cpu.op_D0, 8),
+            ((), gb_cpu.op_D1, 12),
+            ((2,), gb_cpu.op_D2, 12),
+            ((), gb_cpu.op_D3, 0),
+            ((2,), gb_cpu.op_D4, 12),
+            ((), gb_cpu.op_D5, 16),
+            ((1,), gb_cpu.op_D6, 8),
+            ((), gb_cpu.op_D7, 32),
+            ((), gb_cpu.op_D8, 8),
+            ((), gb_cpu.op_D9, 8),
+            ((2,), gb_cpu.op_DA, 12),
+            ((), gb_cpu.op_DB, 0),
+            ((2,), gb_cpu.op_DC, 12),
+            ((), gb_cpu.op_DD, 0),
+            ((), gb_cpu.op_DE, 8),
+            ((), gb_cpu.op_DF, 32),
+            ((1,), gb_cpu.op_E0, 12),
+            ((), gb_cpu.op_E1, 12),
+            ((), gb_cpu.op_E2, 8),
+            ((), gb_cpu.op_E3, 0),
+            ((), gb_cpu.op_E4, 0),
+            ((), gb_cpu.op_E5, 16),
+            ((1,), gb_cpu.op_E6, 8),
+            ((), gb_cpu.op_E7, 32),
+            ((1,), gb_cpu.op_E8, 16),
+            ((), gb_cpu.op_E9, 4),
+            ((2,), gb_cpu.op_EA, 16),
+            ((), gb_cpu.op_EB, 0),
+            ((), gb_cpu.op_EC, 0),
+            ((), gb_cpu.op_ED, 0),
+            ((1,), gb_cpu.op_EE, 8),
+            ((), gb_cpu.op_EF, 32),
+            ((1,), gb_cpu.op_F0, 12),
+            ((), gb_cpu.op_F1, 12),
+            ((), gb_cpu.op_F2, 8),
+            ((), gb_cpu.op_F3, 4),
+            ((), gb_cpu.op_F4, 0),
+            ((), gb_cpu.op_F5, 16),
+            ((1,), gb_cpu.op_F6, 8),
+            ((), gb_cpu.op_F7, 32),
+            ((1,), gb_cpu.op_F8, 12),
+            ((), gb_cpu.op_F9, 8),
+            ((2,), gb_cpu.op_FA, 16),
+            ((), gb_cpu.op_FB, 4),
+            ((), gb_cpu.op_FC, 0),
+            ((), gb_cpu.op_FD, 0),
+            ((1,), gb_cpu.op_FE, 8),
+            ((), gb_cpu.op_FF, 32),
             ]
 
     def load_rom(self, fname):
         self.ram.load_rom(fname)
+
+    def __str__(self):
+        return """
+Clock: %d
+A: %02x   F: %02x   SP: %04x
+B: %02x   C: %02x   PC: %04x
+D: %02x   E: %02x   Halt: %s
+H: %02x   L: %02x   Ints: %s
+""" % (self.clock,
+       self.A, self.F, self.SP,
+       self.B, self.C, self.PC,
+       self.D, self.E, str(self.halted),
+       self.H, self.L, str(self.interrupts))
 
     def execute_next_instruction(self):
         op = self.ram.read(self.PC)
         self.PC += 1
 
         op_details = self.opcodes[op]
+        print "op %02x" % op
+        print op_details[0]
         args = []
         for l in op_details[0]:
             a = 0
@@ -296,7 +313,8 @@ class gb_cpu(object):
                 a += self.ram.read(self.PC) << (8*i)
                 self.PC += 1
             args.append(a)
-        op_detals[1](self, *args)
+        op_details[1](self, *args)
+        self.clock += op_details[2]
 
     def op_00(self):
         # NOP
@@ -308,6 +326,7 @@ class gb_cpu(object):
         self.C = data & 0xFF
 
     def op_02(self):
+        # LD (BC), A
         self.ram.write((self.B << 8) | self.C, self.A)
 
     def op_03(self):
@@ -415,7 +434,8 @@ class gb_cpu(object):
         if data == 0:
             # STOP
             # For now implemented as HALT
-            self.halted = True
+            if self.interrupts:
+                self.halted = True
 
     def op_11(self, data):
         # LD DE, nn
@@ -547,11 +567,11 @@ class gb_cpu(object):
     def op_22(self):
         # LDI (HL), A
         self.ram.write((self.H << 8) | self.L, self.A)
-        if L < 0xFF:
-            L += 1
+        if self.L < 0xFF:
+            self.L += 1
         else:
-            L = 0
-            H = (H + 1) & 0xFF
+            self.L = 0
+            self.H = (self.H + 1) & 0xFF
 
     def op_23(self):
         # INC HL
@@ -621,11 +641,11 @@ class gb_cpu(object):
     def op_2A(self):
         # LDI A, (HL)
         self.A = self.ram.read((self.H << 8) | self.L)
-        if L < 0xFF:
-            L += 1
+        if self.L < 0xFF:
+            self.L += 1
         else:
-            L = 0x00
-            H = (H + 1) & 0xFF
+            self.L = 0x00
+            self.H = (self.H + 1) & 0xFF
 
     def op_2B(self):
         # DEC HL
@@ -679,11 +699,11 @@ class gb_cpu(object):
     def op_32(self):
         # LDD (HL), A
         self.ram.write((self.H << 8) | self.L, self.A)
-        if L > 0:
-            L -= 1
+        if self.L > 0:
+            self.L -= 1
         else:
-            L = 0xFF
-            H = (H - 1) & 0xFF
+            self.L = 0xFF
+            self.H = (self.H - 1) & 0xFF
 
     def op_33(self):
         # INC SP
@@ -749,11 +769,11 @@ class gb_cpu(object):
     def op_3A(self):
         # LDD A, (HL)
         self.A = self.ram.read((self.H << 8) | self.L)
-        if L > 0:
-            L -= 1
+        if self.L > 0:
+            self.L -= 1
         else:
-            L = 0xFF
-            H = (H - 1) & 0xFF
+            self.L = 0xFF
+            self.H = (self.H - 1) & 0xFF
 
     def op_3B(self):
         # DEC SP
@@ -1013,7 +1033,8 @@ class gb_cpu(object):
 
     def op_76(self):
         # HALT
-        self.halted = True
+        if self.interrupts:
+            self.halted = True
 
     def op_77(self):
         # LD (HL), A
@@ -2728,6 +2749,28 @@ class gb_ram(object):
         self.iram = [0x00] * 0x2000 # Internal RAM
         self.sprite_info = [0x00] * 0xA0
         self.zram = [0x00] * 0x80 # Zero-page RAM
+
+        self.mmio = [0x00] * 0x80 # Memory mapped IO
+        # Initial MMIO values
+        self.mmio[0x10] = 0x80
+        self.mmio[0x11] = 0xBF
+        self.mmio[0x12] = 0xF3
+        self.mmio[0x14] = 0xBF
+        self.mmio[0x16] = 0x3F
+        self.mmio[0x19] = 0xBF
+        self.mmio[0x1A] = 0x7F
+        self.mmio[0x1B] = 0xFF
+        self.mmio[0x1C] = 0x9F
+        self.mmio[0x1E] = 0xBF
+        self.mmio[0x20] = 0xFF
+        self.mmio[0x23] = 0xBF
+        self.mmio[0x24] = 0x77
+        self.mmio[0x25] = 0xF3
+        self.mmio[0x26] = 0xF1
+        self.mmio[0x40] = 0x91
+        self.mmio[0x47] = 0xFC
+        self.mmio[0x48] = 0xFF
+        self.mmio[0x49] = 0xFF
 
     def load_rom(self, fname):
         rom_string = open(fname).read()
