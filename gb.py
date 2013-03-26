@@ -281,6 +281,9 @@ class gb_cpu(object):
             ((), op_FF),
             ]
 
+    def load_rom(self, fname):
+        self.ram.load_rom(fname)
+
     def execute_next_instruction(self):
         op = self.ram.read(self.PC)
         self.PC += 1
@@ -2719,12 +2722,82 @@ class gb_cpu(object):
 
 class gb_ram(object):
     def __init__(self):
-        self.data = [0x00] * 0x10000
+        self.rom = [] # Cartridge ROM
+        self.vram = [0x00] * 0x2000 # Video RAM
+        self.eram = [0x00] * 0x2000 # External RAM
+        self.iram = [0x00] * 0x2000 # Internal RAM
+        self.sprite_info = [0x00] * 0xA0
+        self.zram = [0x00] * 0x80 # Zero-page RAM
+
+    def load_rom(self, fname):
+        rom_string = open(fname).read()
+        self.rom = [ord(c) for c in rom_string]
 
     def read(self, p):
-        # TODO - memory mapped shit
-        return self.data[p]
+        if p >= 0xFF80:
+            # Zero page RAM
+            return self.zram[p - 0xFF80]
+        elif p >= 0xFF00:
+            # TODO -- Memory mapped I/O
+            return 0
+        elif p >= 0xFEA0:
+            # Nothing here
+            return 0
+        elif p >= 0xFE00:
+            # Sprite info
+            return self.sprite_info[p - 0xFE00]
+        elif p >= 0xE000:
+            # Working RAM Shadow
+            return self.iram[p - 0xE000]
+        elif p >= 0xC000:
+            # Working RAM
+            return self.iram[p - 0xC000]
+        elif p >= 0xA000:
+            # External RAM
+            return self.eram[p - 0xA000]
+        elif p >= 0x8000:
+            # Graphics RAM
+            return self.vram[p - 0x8000]
+        elif p >= 0x4000:
+            # ROM, switchable bank
+            # TODO - switching
+            # For now, just return as if it's bank 1
+            return self.rom[p]
+        else:
+            # ROM bank 0
+            return self.rom[p]
 
     def write(self, p, d):
-        # TODO - memory mapped shit
-        self.data[p] = d & 0xFF
+        d = d & 0xFF
+        if p >= 0xFF80:
+            # Zero page RAM
+            self.zram[p - 0xFF80] = d
+        elif p >= 0xFF00:
+            # TODO -- Memory mapped I/O
+            return
+        elif p >= 0xFEA0:
+            # Nothing here
+            return
+        elif p >= 0xFE00:
+            # Sprite info
+            self.sprite_info[p - 0xFE00] = d
+        elif p >= 0xE000:
+            # Working RAM Shadow
+            self.iram[p - 0xE000] = d
+        elif p >= 0xC000:
+            # Working RAM
+            self.iram[p - 0xC000] = d
+        elif p >= 0xA000:
+            # External RAM
+            self.eram[p - 0xA000] = d
+        elif p >= 0x8000:
+            # Graphics RAM
+            self.vram[p - 0x8000] = d
+        elif p >= 0x4000:
+            # ROM, switchable bank
+            # TODO - switching
+            # For now, just return as if it's bank 1
+            self.rom[p] = d
+        else:
+            # ROM bank 0
+            self.rom[p] = d
