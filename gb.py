@@ -18,6 +18,7 @@ class gb_cpu(object):
         self.SP = 0xFFFE
         self.PC = 0x100
         self.clock = 0
+        self.dt # Amount of time spent on the last operation
         self.halted = False
         self.interrupts = False
         self.ram = gb_ram()
@@ -315,6 +316,7 @@ H: %02x   L: %02x   Ints: %s
             args.append(a)
         op_details[1](self, *args)
         self.clock += op_details[2]
+        self.dt = op_details[2]
 
     def op_00(self):
         # NOP
@@ -2844,3 +2846,53 @@ class gb_ram(object):
         else:
             # ROM bank 0
             self.rom[p] = d
+ 
+class gb_gpu(object):
+    def __init__(self, ram_obj):
+        self.ram = ram_obj
+        self.modeclock = 0
+        self.mode = 0
+        self.line = 0
+
+    # dt is the amount of itme since the last update
+    def update(self, dt):
+        self.modeclock += dt
+        if self.mode == 2:
+            # OAM read mode
+            if self.modeclock >= 80:
+                self.modeclock = 0
+                self.mode = 3
+        elif self.mode == 3:
+            # VRAM read mode
+            if self.modeclock >= 172:
+                self.write_scanline()
+
+                self.modeclock = 0
+                self.mode = 0
+        elif self.mode == 0:
+            # HBLANK
+            if self.modeclock >= 204:
+                self.modeclock = 0
+                self.line += 1
+                if self.line == 143:
+                    # Move to VBLANK
+                    self.mode = 1
+                    # TODO - draw frame
+                else:
+                    self.mode = 2
+        elif self.mode == 1:
+            # VBLANK for equivalent of 10 lines
+            if self.modeclock >= 456:
+                self.modeclock = 0
+                self.line += 1
+                if self.line > 153:
+                    # Done with VBLANK
+                    self.mode = 2
+                    self.line = 0
+
+        # Update MMIO registers
+        self.ram.mmio[0x44] = self.line
+
+    def write_scanline(self):
+        # Write a scanline
+        pass
