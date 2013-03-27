@@ -2911,7 +2911,6 @@ class gb_ram(object):
                 else:
                     # Technically should enable/disable RAM bank
                     pass
-                print "Selected ROM bank %d" % self.mbc1_rom_bank
             return
 
 class GPUFlags:
@@ -2982,14 +2981,11 @@ GPU Mode: %d    Mode Clock: %d    Line: %3d (%02x)
         self.ram.mmio[0x44] = self.line
 
     def write_scanline(self):
-        print "Writing line %d" % self.line
         flags = self.ram.mmio[0x40]
         scy = self.ram.mmio[0x42]
         scx = self.ram.mmio[0x43]
 
         pallette = self.ram.mmio[0x47]
-        print "pallette: %02x" % pallette
-        print "flags: %02x, scy: %02x, scx: %02x" % (flags, scy, scx)
 
         if (flags & GPUFlags.BGMAP) == 0:
             map_offset = 0x1800
@@ -3017,8 +3013,6 @@ GPU Mode: %d    Mode Clock: %d    Line: %3d (%02x)
 
             tile_lo = self.ram.vram[tile_no * 0x10 + pix_line * 2]
             tile_hi = self.ram.vram[tile_no * 0x10 + pix_line * 2 + 1]
-            
-            # print tile_no, tile_lo, tile_hi
 
             pix_hi = ((tile_hi & (1 << tile_bit)) >> tile_bit)
             pix_lo = ((tile_lo & (1 << tile_bit)) >> tile_bit)
