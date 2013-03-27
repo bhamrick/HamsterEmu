@@ -18,7 +18,7 @@ class gb_cpu(object):
         self.SP = 0xFFFE
         self.PC = 0x100
         self.clock = 0
-        self.dt # Amount of time spent on the last operation
+        self.dt = 0 # Amount of time spent on the last operation
         self.halted = False
         self.interrupts = False
         self.ram = gb_ram()
@@ -2846,13 +2846,29 @@ class gb_ram(object):
         else:
             # ROM bank 0
             self.rom[p] = d
- 
+
+class GPUFlags:
+    BGON = 0x01 # Background on
+    SPON = 0x02 # Sprites on
+    SPSZ = 0x04 # Sprite size (0 = 8x8, 1 = 16x16)
+    BGMAP = 0x08 # Background map
+    BGSET = 0x10 # Background tileset
+    WINON = 0x20 # Window on
+    WINMAP = 0x40 # Window tilemap
+    DISPON = 0x80 # Display on
+
 class gb_gpu(object):
     def __init__(self, ram_obj):
         self.ram = ram_obj
         self.modeclock = 0
         self.mode = 0
         self.line = 0
+        self.pixels = [None] * 144
+        for i in range(144):
+            self.pixels[i] = [0x0] * 160
+
+    def __str__(self):
+        return '\n'.join(''.join(str(p) for p in pix_row) for pix_row in self.pixels)
 
     # dt is the amount of itme since the last update
     def update(self, dt):
@@ -2894,5 +2910,38 @@ class gb_gpu(object):
         self.ram.mmio[0x44] = self.line
 
     def write_scanline(self):
-        # Write a scanline
-        pass
+        flags = self.ram.mmio[0x40]
+        scy = self.ram.mmio[0x42]
+        scx = self.ram.mmio[0x43]
+
+        pallette = self.ram.mmio[0x47]
+
+        if (flags & GPUFlags.BGMAP) == 0:
+            map_offset = 0x1800
+        else:
+            map_offset = 0x1C00
+
+        tileset_offset = 0x0000
+
+        map_line = (self.line + scy) >> 3
+        pix_line = (self.line + scy) & 7
+        # The tiles for this line
+        # Each line consists of 32 tileset indices
+        tiles = self.ram.vram[map_offset + map_line * 32 : map_offset + (map_line + 1) * 32]
+
+        for pix in range(160):
+            tile_index = (pix + scx) >> 3
+            tile_bit = (pix + scx) & 7
+
+            tile_no = tiles[tile_index]
+
+            # look up the tile
+            # Account for different location of tileset 1
+            if (flags & GPUFlags.BGSET) == GPUFlags.BGSET & tile_no < 0x80:
+                tile_no += 0x100
+
+            tile_hi = self.ram.vram[tile_no * 0x10 + pix_line * 2]
+            tile_lo = self.ram.vram[tile_no * 0x10 + pix_line * 2 + 1]
+
+            pallette_index = tile_hi * 2 + tile_lo
+            self.pixels[self.line][pix] = (pallette >> (pallette_index * 2)) & 3
