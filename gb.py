@@ -2795,9 +2795,29 @@ class gb_ram(object):
         self.mmio[0x48] = 0xFF
         self.mmio[0x49] = 0xFF
 
+        self.mbc_type = 0 # 0 = no switching, 1/2/3/5 for MBC 1/2/3/5
+
+        # MBC1 registers
+        self.mbc1_mode = 0 # 0 = 16/8 mode, 1 = 4/32 mode
+        self.mbc1_rom_bank = 1 # 5/7 bit rom bank index
+        self.mbc1_ram_bank = 0 # 2 bit ram bank index
+
     def load_rom(self, fname):
         rom_string = open(fname).read()
         self.rom = [ord(c) for c in rom_string]
+
+        # Set up mbc
+        rom_type = self.rom[0x0147]
+        if rom_type in (0, 8, 9):
+            self.mbc_type = 0
+        elif rom_type in (1, 2, 3):
+            self.mbc_type = 1
+        elif rom_type in (5, 6):
+            self.mbc_type = 2
+        elif rom_type in (0x12, 0x13):
+            self.mbc_type = 3
+        elif rom_type in (0x19, 0x1A, 0x1B, 0x1C, 0x1D, 0x1E):
+            self.mbc_type = 5
 
     def dump(self):
         output = ""
@@ -2835,7 +2855,15 @@ class gb_ram(object):
             # ROM, switchable bank
             # TODO - switching
             # For now, just return as if it's bank 1
-            return self.rom[p]
+            if self.mbc_type == 0:
+                return self.rom[p]
+            elif self.mbc_type == 1:
+                if self.mbc1_rom_bank == 0:
+                    return self.rom[p]
+                else:
+                    return self.rom[p + 0x4000 * (self.mbc1_rom_bank - 1)]
+            else:
+                assert False, "This MBC type not implemented"
         else:
             # ROM bank 0
             return self.rom[p]
@@ -2865,14 +2893,26 @@ class gb_ram(object):
         elif p >= 0x8000:
             # Graphics RAM
             self.vram[p - 0x8000] = d
-        elif p >= 0x4000:
-            # ROM, switchable bank
-            # TODO - switching
-            # For now, just return as if it's bank 1
-            self.rom[p] = d
         else:
-            # ROM bank 0
-            self.rom[p] = d
+            # Attempt to write into ROM area
+            # Does not actually write, but interfaces with the MBC
+            # TODO - fill in
+            if self.mbc_type == 1:
+                if p >= 0x6000:
+                    self.mbc1_mode = d & 1
+                elif p >= 0x4000:
+                    if self.mbc1_mode == 0:
+                        self.mbc1_rom_bank &= 0x1F
+                        self.mbc1_rom_bank |= (d & 3) << 5
+                    else:
+                        self.mbc1_ram_bank = d & 3
+                elif p >= 0x2000:
+                    self.mbc1_rom_bank &= ~0x1F
+                    self.mbc1_rom_bank |= (d & 0x1F)
+                else:
+                    # Technically should enable/disable RAM bank
+                    pass
+            return
 
 class GPUFlags:
     BGON = 0x01 # Background on
