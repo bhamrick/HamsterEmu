@@ -2,7 +2,7 @@ class Gameboy:
     def __init__(self):
         self.cpu = gb_cpu()
         self.ram = self.cpu.ram
-        self.gpu = gb_gpu(self.ram)
+        self.gpu = gb_gpu(self.cpu, self.ram)
 
     def step_instruction(self):
         self.cpu.execute_next_instruction()
@@ -412,6 +412,7 @@ H: %02x   L: %02x   Ints: %s
         self.L = HL & 0xFF
 
     def op_0A(self):
+        # LD A, (BC)
         self.A = self.ram.read((self.B << 8) | self.C)
 
     def op_0B(self):
@@ -584,6 +585,7 @@ H: %02x   L: %02x   Ints: %s
             self.PC = self.PC + offset
 
     def op_21(self, data):
+        # LD HL, nn
         self.H = data >> 8
         self.L = data & 0xFF
 
@@ -2690,7 +2692,7 @@ H: %02x   L: %02x   Ints: %s
         pass
 
     def op_F5(self):
-         # PUSH AF
+        # PUSH AF
         self.SP = (self.SP - 2) & 0xFFFF
         self.ram.write(self.SP, self.F)
         self.ram.write(self.SP + 1, self.A)
@@ -2720,9 +2722,9 @@ H: %02x   L: %02x   Ints: %s
         self.L = addr & 0xFF
         self.F = 0
         # TODO - These might be not computed correctly
-        if (self.SP & 0xF) + (args[0] & 0xF) > 0xF:
+        if (self.SP & 0xF) + (offset & 0xF) > 0xF:
             self.F |= Flags.H
-        if (self.SP & 0xFF) + (args[0] & 0xFF) > 0xFF:
+        if (self.SP & 0xFF) + (offset & 0xFF) > 0xFF:
             self.F |= Flags.C
 
     def op_F9(self):
@@ -2763,6 +2765,81 @@ H: %02x   L: %02x   Ints: %s
         self.ram.write(self.SP, self.PC & 0xFF)
         self.ram.write(self.SP+1, self.PC >> 8)
         self.PC = 0x38
+
+    def int_vblank(self):
+        # Attempt to setup a vblank interrupt
+        if self.interrupts:
+            if self.ram.read(0xFFFF) & 0x1 == 0x1:
+                # Go!
+                # self.ram.write(0xFF0F, 0x1)
+                # Push PC onto stack
+                self.SP = (self.SP - 2) & 0xFFFF
+                self.ram.write(self.SP, self.PC & 0xFF)
+                self.ram.write(self.SP+1, self.PC >> 8)
+                # Disable interrupts
+                self.interrupts = False
+                # Jump to 0x40
+                self.PC = 0x40
+
+    def int_lcds(self):
+        # Attempt to setup a LCD stat interrupt
+        if self.interrupts:
+            if self.ram.read(0xFFFF) & 0x2 == 0x2:
+                # Go!
+                # self.ram.write(0xFF0F, 0x2)
+                # Push PC onto stack
+                self.SP = (self.SP - 2) & 0xFFFF
+                self.ram.write(self.SP, self.PC & 0xFF)
+                self.ram.write(self.SP+1, self.PC >> 8)
+                # Disable interrupts
+                self.interrupts = False
+                # Jump to 0x48
+                self.PC = 0x48
+
+    def int_timer(self):
+        # Attempt to setup a timer interrupt
+        if self.interrupts:
+            if self.ram.read(0xFFFF) & 0x4 == 0x4:
+                # Go!
+                # self.ram.write(0xFF0F, 0x4)
+                # Push PC onto stack
+                self.SP = (self.SP - 2) & 0xFFFF
+                self.ram.write(self.SP, self.PC & 0xFF)
+                self.ram.write(self.SP+1, self.PC >> 8)
+                # Disable interrupts
+                self.interrupts = False
+                # Jump to 0x50
+                self.PC = 0x50
+
+    def int_serial(self):
+        # Attempt to setup a serial interrupt
+        if self.interrupts:
+            if self.ram.read(0xFFFF) & 0x8 == 0x8:
+                # Go!
+                # self.ram.write(0xFF0F, 0x8)
+                # Push PC onto stack
+                self.SP = (self.SP - 2) & 0xFFFF
+                self.ram.write(self.SP, self.PC & 0xFF)
+                self.ram.write(self.SP+1, self.PC >> 8)
+                # Disable interrupts
+                self.interrupts = False
+                # Jump to 0x58
+                self.PC = 0x58
+
+    def int_joypad(self):
+        # Attempt to setup a joypad interrupt
+        if self.interrupts:
+            if self.ram.read(0xFFFF) & 0x10 == 0x10:
+                # Go!
+                # self.ram.write(0xFF0F, 0x10)
+                # Push PC onto stack
+                self.SP = (self.SP - 2) & 0xFFFF
+                self.ram.write(self.SP, self.PC & 0xFF)
+                self.ram.write(self.SP+1, self.PC >> 8)
+                # Disable interrupts
+                self.interrupts = False
+                # Jump to 0x60
+                self.PC = 0x60
 
 class gb_ram(object):
     def __init__(self):
@@ -2899,15 +2976,18 @@ class gb_ram(object):
             if self.mbc_type == 1:
                 if p >= 0x6000:
                     self.mbc1_mode = d & 1
+                    # print "MBC1 mode %d" % self.mbc1_mode
                 elif p >= 0x4000:
                     if self.mbc1_mode == 0:
                         self.mbc1_rom_bank &= 0x1F
                         self.mbc1_rom_bank |= (d & 3) << 5
                     else:
                         self.mbc1_ram_bank = d & 3
+                    # print "Selected ROM bank %d" % self.mbc1_rom_bank
                 elif p >= 0x2000:
-                    self.mbc1_rom_bank &= ~0x1F
+                    self.mbc1_rom_bank &= 0x60
                     self.mbc1_rom_bank |= (d & 0x1F)
+                    # print "Selected ROM bank %d" % self.mbc1_rom_bank
                 else:
                     # Technically should enable/disable RAM bank
                     pass
@@ -2924,7 +3004,8 @@ class GPUFlags:
     DISPON = 0x80 # Display on
 
 class gb_gpu(object):
-    def __init__(self, ram_obj):
+    def __init__(self, cpu_obj, ram_obj):
+        self.cpu = cpu_obj
         self.ram = ram_obj
         self.modeclock = 0
         self.mode = 0
@@ -2964,7 +3045,9 @@ GPU Mode: %d    Mode Clock: %d    Line: %3d (%02x)
                 if self.line == 143:
                     # Move to VBLANK
                     self.mode = 1
-                    # TODO - draw frame
+
+                    # Trigger vblank interrupt
+                    self.cpu.int_vblank()
                 else:
                     self.mode = 2
         elif self.mode == 1:
@@ -2984,6 +3067,8 @@ GPU Mode: %d    Mode Clock: %d    Line: %3d (%02x)
         flags = self.ram.mmio[0x40]
         scy = self.ram.mmio[0x42]
         scx = self.ram.mmio[0x43]
+
+        # print "scy: %d, scx: %d" % (scy, scx)
 
         pallette = self.ram.mmio[0x47]
 
