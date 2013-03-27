@@ -1,3 +1,21 @@
+class Gameboy:
+    def __init__(self):
+        self.cpu = gb_cpu()
+        self.ram = self.cpu.ram
+        self.gpu = gb_gpu(self.ram)
+
+    def step_instruction(self):
+        self.cpu.execute_next_instruction()
+        self.gpu.update(self.cpu.dt)
+
+    def step_frame(self):
+        end_clock = self.cpu.clock + 70224
+        while self.cpu.clock < end_clock:
+            self.step_instruction()
+
+    def load_rom(self, fname):
+        self.ram.load_rom(fname)
+
 class Flags:
     Z = 0x80
     N = 0x40
@@ -22,6 +40,10 @@ class gb_cpu(object):
         self.halted = False
         self.interrupts = False
         self.ram = gb_ram()
+
+        # Debugging info
+        self.used_ops = set()
+
         # Opcode format:
         # (arg_lengths, func, cycles), where arg_lengths is a tuple giving the byte length of each argument
         # cycles is the number of clock cycles the instruction takes
@@ -305,8 +327,6 @@ H: %02x   L: %02x   Ints: %s
         self.PC += 1
 
         op_details = self.opcodes[op]
-        print "op %02x" % op
-        print op_details[0]
         args = []
         for l in op_details[0]:
             a = 0
@@ -317,6 +337,7 @@ H: %02x   L: %02x   Ints: %s
         op_details[1](self, *args)
         self.clock += op_details[2]
         self.dt = op_details[2]
+        self.used_ops.add(op)
 
     def op_00(self):
         # NOP
@@ -2778,13 +2799,20 @@ class gb_ram(object):
         rom_string = open(fname).read()
         self.rom = [ord(c) for c in rom_string]
 
+    def dump(self):
+        output = ""
+        for row in range(0, 0x10000, 0x10):
+            line = "%04x: " % row
+            line += ' '.join("%02x" % self.read(p) for p in range(row, row+0x10))
+            output += line + "\n"
+        return output
+
     def read(self, p):
         if p >= 0xFF80:
             # Zero page RAM
             return self.zram[p - 0xFF80]
         elif p >= 0xFF00:
-            # TODO -- Memory mapped I/O
-            return 0
+            return self.mmio[p - 0xFF00]
         elif p >= 0xFEA0:
             # Nothing here
             return 0
@@ -2818,8 +2846,7 @@ class gb_ram(object):
             # Zero page RAM
             self.zram[p - 0xFF80] = d
         elif p >= 0xFF00:
-            # TODO -- Memory mapped I/O
-            return
+            self.mmio[p - 0xFF00] = d
         elif p >= 0xFEA0:
             # Nothing here
             return
@@ -2868,6 +2895,11 @@ class gb_gpu(object):
             self.pixels[i] = [0x0] * 160
 
     def __str__(self):
+        return """
+GPU Mode: %d    Mode Clock: %d    Line: %3d (%02x)
+""" % (self.mode, self.modeclock, self.line, self.line)
+
+    def pixmap_str(self):
         return '\n'.join(''.join(str(p) for p in pix_row) for pix_row in self.pixels)
 
     # dt is the amount of itme since the last update
@@ -2923,25 +2955,28 @@ class gb_gpu(object):
 
         tileset_offset = 0x0000
 
-        map_line = (self.line + scy) >> 3
-        pix_line = (self.line + scy) & 7
+        map_line = ((self.line + scy) & 0xFF) >> 3
+        pix_line = ((self.line + scy) & 0xFF) & 7
         # The tiles for this line
         # Each line consists of 32 tileset indices
         tiles = self.ram.vram[map_offset + map_line * 32 : map_offset + (map_line + 1) * 32]
 
         for pix in range(160):
-            tile_index = (pix + scx) >> 3
-            tile_bit = (pix + scx) & 7
+            tile_index = ((pix + scx) & 0xFF) >> 3
+            tile_bit = ((pix + scx) & 0xFF) & 7
 
             tile_no = tiles[tile_index]
 
             # look up the tile
             # Account for different location of tileset 1
-            if (flags & GPUFlags.BGSET) == GPUFlags.BGSET & tile_no < 0x80:
+            if (flags & GPUFlags.BGSET) == GPUFlags.BGSET and tile_no < 0x80:
                 tile_no += 0x100
 
-            tile_hi = self.ram.vram[tile_no * 0x10 + pix_line * 2]
-            tile_lo = self.ram.vram[tile_no * 0x10 + pix_line * 2 + 1]
+            tile_lo = self.ram.vram[tile_no * 0x10 + pix_line * 2]
+            tile_hi = self.ram.vram[tile_no * 0x10 + pix_line * 2 + 1]
 
-            pallette_index = tile_hi * 2 + tile_lo
+            pix_hi = ((tile_hi & (1 << tile_bit)) >> tile_bit)
+            pix_lo = ((tile_lo & (1 << tile_bit)) >> tile_bit)
+
+            pallette_index = pix_hi * 2 + pix_lo 
             self.pixels[self.line][pix] = (pallette >> (pallette_index * 2)) & 3
