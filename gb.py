@@ -5,7 +5,11 @@ class Gameboy:
         self.gpu = gb_gpu(self.cpu, self.ram)
 
     def step_instruction(self):
-        self.cpu.execute_next_instruction()
+        if self.cpu.halted:
+            self.cpu.clock += 4
+            self.cpu.dt = 4
+        else:
+            self.cpu.execute_next_instruction()
         self.gpu.update(self.cpu.dt)
 
     def step_frame(self):
