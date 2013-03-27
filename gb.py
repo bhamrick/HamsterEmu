@@ -356,7 +356,7 @@ H: %02x   L: %02x   Ints: %s
         # INC BC
         self.C = (self.C + 1) & 0xFF
         if self.C == 0:
-            self.B + (self.B + 1) & 0xFF
+            self.B = (self.B + 1) & 0xFF
 
     def op_04(self):
         # INC B
@@ -473,7 +473,7 @@ H: %02x   L: %02x   Ints: %s
         # INC DE
         self.E = (self.E + 1) & 0xFF
         if self.E == 0:
-            self.D + (self.D + 1) & 0xFF
+            self.D = (self.D + 1) & 0xFF
 
     def op_14(self):
         # INC D
@@ -600,7 +600,7 @@ H: %02x   L: %02x   Ints: %s
         # INC HL
         self.L = (self.L + 1) & 0xFF
         if self.L == 0:
-            self.H + (self.H + 1) & 0xFF
+            self.H = (self.H + 1) & 0xFF
 
     def op_24(self):
         # INC H
@@ -2853,8 +2853,7 @@ class gb_ram(object):
             return self.vram[p - 0x8000]
         elif p >= 0x4000:
             # ROM, switchable bank
-            # TODO - switching
-            # For now, just return as if it's bank 1
+            # TODO - finish switching
             if self.mbc_type == 0:
                 return self.rom[p]
             elif self.mbc_type == 1:
@@ -2912,6 +2911,7 @@ class gb_ram(object):
                 else:
                     # Technically should enable/disable RAM bank
                     pass
+                print "Selected ROM bank %d" % self.mbc1_rom_bank
             return
 
 class GPUFlags:
