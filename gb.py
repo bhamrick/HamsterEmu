@@ -505,8 +505,6 @@ H: %02x   L: %02x   Ints: %s
         high_bit = (self.A & 0x80) / 0x80
         self.A = ((self.A << 1) & 0xFF) | high_bit
         self.F = high_bit * Flags.C
-        if self.A == 0:
-            self.F |= Flags.Z
 
     def op_08(self, addr):
         # LD (nn), SP
@@ -568,8 +566,6 @@ H: %02x   L: %02x   Ints: %s
         low_bit = self.A & 0x1
         self.A = (self.A >> 1) | (low_bit << 7)
         self.F = low_bit * Flags.C
-        if self.A == 0:
-            self.F |= Flags.Z
 
     def op_10(self, data):
         if data == 0:
@@ -611,7 +607,7 @@ H: %02x   L: %02x   Ints: %s
         self.F |= Flags.N
         if self.D == 0:
             self.F |= Flags.Z
-        if (self.D & 0xF) != 0xF:
+        if (self.D & 0xF) == 0xF:
             self.F |= Flags.H
 
     def op_16(self, data):
@@ -624,8 +620,6 @@ H: %02x   L: %02x   Ints: %s
         c_flag = (self.F & Flags.C) / Flags.C
         self.A = ((self.A << 1) & 0xFF) | c_flag
         self.F = high_bit * Flags.C
-        if self.A == 0:
-            self.F |= Flags.Z
 
     def op_18(self, offset):
         # JR n
@@ -690,8 +684,6 @@ H: %02x   L: %02x   Ints: %s
         c_flag = (self.F & Flags.C) / Flags.C
         self.A = (self.A >> 1) | (c_flag << 7)
         self.F = low_bit * Flags.C
-        if self.A == 0:
-            self.F |= Flags.Z
 
     def op_20(self, offset):
         # JRNZ n
