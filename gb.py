@@ -2705,42 +2705,49 @@ H: %02x   L: %02x   Ints: %s
 
     def op_CB_30(self):
         # SWAP B
+        self.F = 0
         self.B = (self.B >> 4) | ((self.B & 0xF) << 4)
         if self.B == 0:
             self.F |= Flags.Z
     
     def op_CB_31(self):
         # SWAP C
+        self.F = 0
         self.C = (self.C >> 4) | ((self.C & 0xF) << 4)
         if self.C == 0:
             self.F |= Flags.Z
     
     def op_CB_32(self):
         # SWAP D
+        self.F = 0
         self.D = (self.D >> 4) | ((self.D & 0xF) << 4)
         if self.D == 0:
             self.F |= Flags.Z
     
     def op_CB_33(self):
         # SWAP E
+        self.F = 0
         self.E = (self.E >> 4) | ((self.E & 0xF) << 4)
         if self.E == 0:
             self.F |= Flags.Z
     
     def op_CB_34(self):
         # SWAP H
+        self.F = 0
         self.H = (self.H >> 4) | ((self.H & 0xF) << 4)
         if self.H == 0:
             self.F |= Flags.Z
     
     def op_CB_35(self):
         # SWAP L
+        self.F = 0
         self.L = (self.L >> 4) | ((self.L & 0xF) << 4)
         if self.L == 0:
             self.F |= Flags.Z
     
     def op_CB_36(self):
         # SWAP (HL)
+        self.F = 0
         data = self.ram.read((self.H << 8) | self.L)
         data = (data >> 4) | ((data & 0xF) << 4)
         if data == 0:
@@ -2749,6 +2756,7 @@ H: %02x   L: %02x   Ints: %s
     
     def op_CB_37(self):
         # SWAP A
+        self.F = 0
         self.A = (self.A >> 4) | ((self.A & 0xF) << 4)
         if self.A == 0:
             self.F |= Flags.Z
