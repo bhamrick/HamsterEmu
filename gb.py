@@ -276,7 +276,7 @@ class gb_cpu(object):
             ((), gb_cpu.op_DB, 0),
             ((2,), gb_cpu.op_DC, 12),
             ((), gb_cpu.op_DD, 0),
-            ((1), gb_cpu.op_DE, 8),
+            ((1,), gb_cpu.op_DE, 8),
             ((), gb_cpu.op_DF, 32),
             ((1,), gb_cpu.op_E0, 12),
             ((), gb_cpu.op_E1, 12),
@@ -4075,41 +4075,43 @@ GPU Mode: %d    Mode Clock: %d    Line: %3d (%02x)
         scx = self.ram.mmio[0x43]
 
         # print "scy: %d, scx: %d" % (scy, scx)
-        pallette = self.ram.mmio[0x47]
+        if flags & GPUFlags.BGON == GPUFlags.BGON:
+            # Display background
+            bg_pallette = self.ram.mmio[0x47]
 
-        if (flags & GPUFlags.BGMAP) == 0:
-            map_offset = 0x1800
-        else:
-            map_offset = 0x1C00
+            if (flags & GPUFlags.BGMAP) == 0:
+                map_offset = 0x1800
+            else:
+                map_offset = 0x1C00
 
-        tileset_offset = 0x0000
+            tileset_offset = 0x0000
 
-        map_line = ((self.line + scy) & 0xFF) >> 3
-        pix_line = ((self.line + scy) & 0xFF) & 7
-        # The tiles for this line
-        # Each line consists of 32 tileset indices
-        tiles = self.ram.vram[map_offset + map_line * 32 : map_offset + (map_line + 1) * 32]
+            map_line = ((self.line + scy) & 0xFF) >> 3
+            pix_line = ((self.line + scy) & 0xFF) & 7
+            # The tiles for this line
+            # Each line consists of 32 tileset indices
+            tiles = self.ram.vram[map_offset + map_line * 32 : map_offset + (map_line + 1) * 32]
 
-        for pix in range(160):
-            tile_index = ((pix + scx) & 0xFF) >> 3
-            tile_bit = 7 - (((pix + scx) & 0xFF) & 7)
+            for pix in range(160):
+                tile_index = ((pix + scx) & 0xFF) >> 3
+                tile_bit = 7 - (((pix + scx) & 0xFF) & 7)
 
-            tile_no = tiles[tile_index]
+                tile_no = tiles[tile_index]
 
-            # look up the tile
-            # Account for different location of tileset 1
-            # Out for now bcause not sure about this
-            # if (flags & GPUFlags.BGSET) == GPUFlags.BGSET and tile_no < 0x80:
-            #     tile_no += 0x100
+                # look up the tile
+                # Account for different location of tileset 1
+                # Out for now bcause not sure about this
+                # if (flags & GPUFlags.BGSET) == GPUFlags.BGSET and tile_no < 0x80:
+                #     tile_no += 0x100
 
-            tile_lo = self.ram.vram[tile_no * 0x10 + pix_line * 2]
-            tile_hi = self.ram.vram[tile_no * 0x10 + pix_line * 2 + 1]
+                tile_lo = self.ram.vram[tile_no * 0x10 + pix_line * 2]
+                tile_hi = self.ram.vram[tile_no * 0x10 + pix_line * 2 + 1]
 
-            pix_hi = ((tile_hi & (1 << tile_bit)) >> tile_bit)
-            pix_lo = ((tile_lo & (1 << tile_bit)) >> tile_bit)
+                pix_hi = ((tile_hi & (1 << tile_bit)) >> tile_bit)
+                pix_lo = ((tile_lo & (1 << tile_bit)) >> tile_bit)
 
-            pallette_index = pix_hi * 2 + pix_lo 
-            self.pixels[self.line][pix] = (pallette >> (pallette_index * 2)) & 3
+                pallette_index = pix_hi * 2 + pix_lo 
+                self.pixels[self.line][pix] = (bg_pallette >> (pallette_index * 2)) & 3
 
 class gb_joypad(object):
     def __init__(self):
