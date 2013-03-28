@@ -1,3 +1,5 @@
+import sys
+
 class Gameboy:
     def __init__(self):
         self.cpu = gb_cpu()
@@ -2177,7 +2179,8 @@ H: %02x   L: %02x   Ints: %s
     def op_F1(self):
         # POP AF
         self.A = self.ram.read(self.SP + 1)
-        self.F = self.ram.read(self.SP)
+        # Flags register only holds four bits
+        self.F = self.ram.read(self.SP) & 0xF0
         self.SP = (self.SP + 2) & 0xFFFF
 
     def op_F2(self):
@@ -4007,7 +4010,7 @@ class gb_ram(object):
                     self.sprite_info[i] = self.read(offset+i)
             elif p == 0xFF02:
                 if d & 0x80 == 0x80:
-                    print chr(self.mmio[0x01])
+                    sys.stdout.write(chr(self.mmio[0x01]))
         elif p >= 0xFEA0:
             # Nothing here
             return
