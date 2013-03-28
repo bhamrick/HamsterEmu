@@ -1752,7 +1752,7 @@ H: %02x   L: %02x   Ints: %s
         # OR A, (HL)
         self.F = 0
         data = self.ram.read((self.H << 8) | self.L)
-        self.A = self.A | self.L
+        self.A = self.A | data
         if self.A == 0:
             self.F |= Flags.Z
 
