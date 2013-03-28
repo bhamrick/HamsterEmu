@@ -1499,7 +1499,7 @@ H: %02x   L: %02x   Ints: %s
         # SBC A, B
         c_flag = (self.F & Flags.C) / Flags.C
         self.F = Flags.N
-        if (self.A & 0xF) < (self.B + 0xF) + c_flag:
+        if (self.A & 0xF) < (self.B & 0xF) + c_flag:
             self.F |= Flags.H
         if self.A < self.B + c_flag:
             self.F |= Flags.C
@@ -1511,7 +1511,7 @@ H: %02x   L: %02x   Ints: %s
         # SBC A, C
         c_flag = (self.F & Flags.C) / Flags.C
         self.F = Flags.N
-        if (self.A & 0xF) < (self.C + 0xF) + c_flag:
+        if (self.A & 0xF) < (self.C & 0xF) + c_flag:
             self.F |= Flags.H
         if self.A < self.C + c_flag:
             self.F |= Flags.C
@@ -1523,7 +1523,7 @@ H: %02x   L: %02x   Ints: %s
         # SBC A, D
         c_flag = (self.F & Flags.C) / Flags.C
         self.F = Flags.N
-        if (self.A & 0xF) < (self.D + 0xF) + c_flag:
+        if (self.A & 0xF) < (self.D & 0xF) + c_flag:
             self.F |= Flags.H
         if self.A < self.D + c_flag:
             self.F |= Flags.C
@@ -1535,7 +1535,7 @@ H: %02x   L: %02x   Ints: %s
         # SBC A, E
         c_flag = (self.F & Flags.C) / Flags.C
         self.F = Flags.N
-        if (self.A & 0xF) < (self.E + 0xF) + c_flag:
+        if (self.A & 0xF) < (self.E & 0xF) + c_flag:
             self.F |= Flags.H
         if self.A < self.E + c_flag:
             self.F |= Flags.C
@@ -1547,7 +1547,7 @@ H: %02x   L: %02x   Ints: %s
         # SBC A, H
         c_flag = (self.F & Flags.C) / Flags.C
         self.F = Flags.N
-        if (self.A & 0xF) < (self.H + 0xF) + c_flag:
+        if (self.A & 0xF) < (self.H & 0xF) + c_flag:
             self.F |= Flags.H
         if self.A < self.H + c_flag:
             self.F |= Flags.C
@@ -1559,7 +1559,7 @@ H: %02x   L: %02x   Ints: %s
         # SBC A, L
         c_flag = (self.F & Flags.C) / Flags.C
         self.F = Flags.N
-        if (self.A & 0xF) < (self.L + 0xF) + c_flag:
+        if (self.A & 0xF) < (self.L & 0xF) + c_flag:
             self.F |= Flags.H
         if self.A < self.L + c_flag:
             self.F |= Flags.C
@@ -1572,7 +1572,7 @@ H: %02x   L: %02x   Ints: %s
         c_flag = (self.F & Flags.C) / Flags.C
         data = self.ram.read((self.H << 8) | self.L)
         self.F = Flags.N
-        if (self.A & 0xF) < (data + 0xF) + c_flag:
+        if (self.A & 0xF) < (data & 0xF) + c_flag:
             self.F |= Flags.H
         if self.A < data + c_flag:
             self.F |= Flags.C
@@ -1584,7 +1584,7 @@ H: %02x   L: %02x   Ints: %s
         # SBC A, A
         c_flag = (self.F & Flags.C) / Flags.C
         self.F = Flags.N
-        if (self.A & 0xF) < (self.A + 0xF) + c_flag:
+        if (self.A & 0xF) < (self.A & 0xF) + c_flag:
             self.F |= Flags.H
         if self.A < self.A + c_flag:
             self.F |= Flags.C
