@@ -493,7 +493,7 @@ H: %02x   L: %02x   Ints: %s
         self.F |= Flags.N
         if self.B == 0:
             self.F |= Flags.Z
-        if (self.B & 0xF) != 0xF:
+        if (self.B & 0xF) == 0xF:
             self.F |= Flags.H
 
     def op_06(self, data):
@@ -556,7 +556,7 @@ H: %02x   L: %02x   Ints: %s
         self.F |= Flags.N
         if self.C == 0:
             self.F |= Flags.Z
-        if (self.C & 0xF) != 0xF:
+        if (self.C & 0xF) == 0xF:
             self.F |= Flags.H
 
     def op_0E(self, data):
@@ -677,7 +677,7 @@ H: %02x   L: %02x   Ints: %s
         self.F |= Flags.N
         if self.E == 0:
             self.F |= Flags.Z
-        if (self.E & 0xF) != 0xF:
+        if (self.E & 0xF) == 0xF:
             self.F |= Flags.H
 
     def op_1E(self, data):
@@ -739,7 +739,7 @@ H: %02x   L: %02x   Ints: %s
         self.F |= Flags.N
         if self.H == 0:
             self.F |= Flags.Z
-        if (self.H & 0xF) != 0xF:
+        if (self.H & 0xF) == 0xF:
             self.F |= Flags.H
 
     def op_26(self, data):
@@ -748,12 +748,25 @@ H: %02x   L: %02x   Ints: %s
 
     def op_27(self):
         # DAA - adjust Binary Coded Decimal results
+        c_flag = (self.F & Flags.C) / Flags.C
+        h_flag = (self.F & Flags.H) / Flags.H
         # Leave N flag alone
         self.F &= Flags.N
-        if self.A & 0xF > 9:
-            self.F |= Flags.C
-            self.A -= 10
-            self.A += 0x10
+        # Identify subtractions
+        if (h_flag and (self.A & 0x0F) >= 0x6) or (c_flag and (self.A & 0xF0) >= 0x60):
+            if h_flag:
+                self.A = (self.A - 0x06) & 0xFF
+            if c_flag:
+                self.A = (self.A - 0x60) & 0xFF
+                self.F |= Flags.C
+        else:
+            if h_flag or (self.A & 0x0F) >= 0x0A:
+                if (self.A & 0xF0) == 0xF0:
+                    self.F |= Flags.C
+                self.A = (self.A + 0x06) & 0xFF
+            if c_flag or (self.A & 0xF0) >= 0xA0:
+                self.A = (self.A + 0x60) & 0xFF
+                self.F |= Flags.C
         if self.A == 0:
             self.F |= Flags.Z
 
@@ -813,7 +826,7 @@ H: %02x   L: %02x   Ints: %s
         self.F |= Flags.N
         if self.L == 0:
             self.F |= Flags.Z
-        if (self.L & 0xF) != 0xF:
+        if (self.L & 0xF) == 0xF:
             self.F |= Flags.H
 
     def op_2E(self, data):
@@ -872,7 +885,7 @@ H: %02x   L: %02x   Ints: %s
         self.F |= Flags.N
         if data == 0:
             self.F |= Flags.Z
-        if (data & 0xF) != 0xF:
+        if (data & 0xF) == 0xF:
             self.F |= Flags.H
         self.ram.write((self.H << 8) | self.L, data)
 
@@ -939,7 +952,7 @@ H: %02x   L: %02x   Ints: %s
         self.F |= Flags.N
         if self.A == 0:
             self.F |= Flags.Z
-        if (self.A & 0xF) != 0xF:
+        if (self.A & 0xF) == 0xF:
             self.F |= Flags.H
 
     def op_3E(self, data):
@@ -2043,7 +2056,7 @@ H: %02x   L: %02x   Ints: %s
         assert False, "Op DB does not exist"
         pass
 
-    def op_DC(self, adr):
+    def op_DC(self, addr):
         # CALLC nn
         if (self.F & Flags.C) == Flags.C:
             # Push current address onto stack
@@ -2127,11 +2140,16 @@ H: %02x   L: %02x   Ints: %s
         if data > 0x7F:
             data = data - 0x100
         self.F = 0
-        # TODO - May be wrong
-        if (self.SP & 0xF) + (data & 0xF) > 0xF:
-            self.F |= Flags.H
-        if (self.SP & 0xFF) + data > 0xFF:
-            self.F |= Flags.C
+        if data > 0:
+            if (self.SP & 0xF) + (data & 0xF) > 0xF:
+                self.F |= Flags.H
+            if (self.SP & 0xFF) + data > 0xFF:
+                self.F |= Flags.C
+        else:
+            if (self.SP & 0xF) < (data & 0xF):
+                self.F |= Flags.H
+            if (self.SP & 0xFF) < (data & 0xFF):
+                self.F |= Flags.C
         self.SP = (self.SP + data) & 0xFFFF
 
     def op_E9(self):
@@ -2206,7 +2224,7 @@ H: %02x   L: %02x   Ints: %s
     def op_F6(self, data):
         # OR A, #
         self.F = 0
-        self.A = self.A | self.L
+        self.A = self.A | data
         if self.A == 0:
             self.F |= Flags.Z
 
@@ -2410,7 +2428,7 @@ H: %02x   L: %02x   Ints: %s
         high_bit = (self.B & 0x80) >> 7
         c_flag = (self.F & Flags.C) / Flags.C
         self.B = ((self.B << 1) & 0xFF) | c_flag
-        self.F = high_bit * flags.C
+        self.F = high_bit * Flags.C
         if self.B == 0:
             self.F |= Flags.Z
     
@@ -2419,7 +2437,7 @@ H: %02x   L: %02x   Ints: %s
         high_bit = (self.C & 0x80) >> 7
         c_flag = (self.F & Flags.C) / Flags.C
         self.C = ((self.C << 1) & 0xFF) | c_flag
-        self.F = high_bit * flags.C
+        self.F = high_bit * Flags.C
         if self.C == 0:
             self.F |= Flags.Z
     
@@ -2428,7 +2446,7 @@ H: %02x   L: %02x   Ints: %s
         high_bit = (self.D & 0x80) >> 7
         c_flag = (self.F & Flags.C) / Flags.C
         self.D = ((self.D << 1) & 0xFF) | c_flag
-        self.F = high_bit * flags.C
+        self.F = high_bit * Flags.C
         if self.D == 0:
             self.F |= Flags.Z
     
@@ -2437,7 +2455,7 @@ H: %02x   L: %02x   Ints: %s
         high_bit = (self.E & 0x80) >> 7
         c_flag = (self.F & Flags.C) / Flags.C
         self.E = ((self.E << 1) & 0xFF) | c_flag
-        self.F = high_bit * flags.C
+        self.F = high_bit * Flags.C
         if self.E == 0:
             self.F |= Flags.Z
     
@@ -2446,7 +2464,7 @@ H: %02x   L: %02x   Ints: %s
         high_bit = (self.H & 0x80) >> 7
         c_flag = (self.F & Flags.C) / Flags.C
         self.H = ((self.H << 1) & 0xFF) | c_flag
-        self.F = high_bit * flags.C
+        self.F = high_bit * Flags.C
         if self.H == 0:
             self.F |= Flags.Z
     
@@ -2455,7 +2473,7 @@ H: %02x   L: %02x   Ints: %s
         high_bit = (self.L & 0x80) >> 7
         c_flag = (self.F & Flags.C) / Flags.C
         self.L = ((self.L << 1) & 0xFF) | c_flag
-        self.F = high_bit * flags.C
+        self.F = high_bit * Flags.C
         if self.L == 0:
             self.F |= Flags.Z
     
@@ -2465,7 +2483,7 @@ H: %02x   L: %02x   Ints: %s
         high_bit = (data & 0x80) >> 7
         c_flag = (self.F & Flags.C) / Flags.C
         data = ((data << 1) & 0xFF) | c_flag
-        self.F = high_bit * flags.C
+        self.F = high_bit * Flags.C
         if data == 0:
             self.F |= Flags.Z
         self.ram.write((self.H << 8) | self.L, data)
