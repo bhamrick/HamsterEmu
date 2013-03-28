@@ -11,6 +11,7 @@ class Gameboy:
         if self.cpu.halted:
             self.cpu.clock += 4
             self.cpu.dt = 4
+            self.cpu.update_clock()
         else:
             self.cpu.execute_next_instruction()
         self.gpu.update(self.cpu.dt)
@@ -32,13 +33,13 @@ class Flags:
 class gb_cpu(object):
     def __init__(self):
         # Initialize registers
-        self.A = 0x01
+        self.A = 0x11
         self.B = 0x00
-        self.D = 0x00
+        self.D = 0xFF
         self.H = 0x01
-        self.F = 0xB0
-        self.C = 0x13
-        self.E = 0xD8
+        self.F = 0x80
+        self.C = 0x00
+        self.E = 0x56
         self.L = 0x4D
         self.SP = 0xFFFE
         self.PC = 0x100
@@ -401,6 +402,8 @@ H: %02x   L: %02x   Ints: %s
     def execute_next_instruction(self):
         op = self.ram.read(self.PC)
         self.PC += 1
+
+        #print "op %02x" % op
 
         op_details = self.opcodes[op]
         args = []
@@ -1399,9 +1402,9 @@ H: %02x   L: %02x   Ints: %s
     def op_90(self):
         # SUB A, B
         self.F = Flags.N
-        if (self.A & 7) >= (self.B & 7):
+        if (self.A & 7) < (self.B & 7):
             self.F |= Flags.H
-        if self.A >= self.B:
+        if self.A < self.B:
             self.F |= Flags.C
         self.A = (self.A - self.B) & 0xFF
         if self.A == 0:
@@ -1410,9 +1413,9 @@ H: %02x   L: %02x   Ints: %s
     def op_91(self):
         # SUB A, C
         self.F = Flags.N
-        if (self.A & 7) >= (self.C & 7):
+        if (self.A & 7) < (self.C & 7):
             self.F |= Flags.H
-        if self.A >= self.C:
+        if self.A < self.C:
             self.F |= Flags.C
         self.A = (self.A - self.C) & 0xFF
         if self.A == 0:
@@ -1421,9 +1424,9 @@ H: %02x   L: %02x   Ints: %s
     def op_92(self):
         # SUB A, D
         self.F = Flags.N
-        if (self.A & 7) >= (self.D & 7):
+        if (self.A & 7) < (self.D & 7):
             self.F |= Flags.H
-        if self.A >= self.D:
+        if self.A < self.D:
             self.F |= Flags.C
         self.A = (self.A - self.D) & 0xFF
         if self.A == 0:
@@ -1432,9 +1435,9 @@ H: %02x   L: %02x   Ints: %s
     def op_93(self):
         # SUB A, E
         self.F = Flags.N
-        if (self.A & 7) >= (self.E & 7):
+        if (self.A & 7) < (self.E & 7):
             self.F |= Flags.H
-        if self.A >= self.E:
+        if self.A < self.E:
             self.F |= Flags.C
         self.A = (self.A - self.E) & 0xFF
         if self.A == 0:
@@ -1443,9 +1446,9 @@ H: %02x   L: %02x   Ints: %s
     def op_94(self):
         # SUB A, H
         self.F = Flags.N
-        if (self.A & 7) >= (self.H & 7):
+        if (self.A & 7) < (self.H & 7):
             self.F |= Flags.H
-        if self.A >= self.H:
+        if self.A < self.H:
             self.F |= Flags.C
         self.A = (self.A - self.H) & 0xFF
         if self.A == 0:
@@ -1454,9 +1457,9 @@ H: %02x   L: %02x   Ints: %s
     def op_95(self):
         # SUB A, L
         self.F = Flags.N
-        if (self.A & 7) >= (self.L & 7):
+        if (self.A & 7) < (self.L & 7):
             self.F |= Flags.H
-        if self.A >= self.L:
+        if self.A < self.L:
             self.F |= Flags.C
         self.A = (self.A - self.L) & 0xFF
         if self.A == 0:
@@ -1466,9 +1469,9 @@ H: %02x   L: %02x   Ints: %s
         # SUB A, (HL)
         self.F = Flags.N
         data = self.ram.read((self.H << 8) | self.L)
-        if (self.A & 7) >= (data & 7):
+        if (self.A & 7) < (data & 7):
             self.F |= Flags.H
-        if self.A >= data:
+        if self.A < data:
             self.F |= Flags.C
         self.A = (self.A - data) & 0xFF
         if self.A == 0:
@@ -1477,9 +1480,9 @@ H: %02x   L: %02x   Ints: %s
     def op_97(self):
         # SUB A, A
         self.F = Flags.N
-        if (self.A & 7) >= (self.A & 7):
+        if (self.A & 7) < (self.A & 7):
             self.F |= Flags.H
-        if self.A >= self.A:
+        if self.A < self.A:
             self.F |= Flags.C
         self.A = (self.A - self.A) & 0xFF
         if self.A == 0:
@@ -1489,9 +1492,9 @@ H: %02x   L: %02x   Ints: %s
         # SBC A, B
         c_flag = (self.F & Flags.C) / Flags.C
         self.F = Flags.N
-        if (self.A & 0xF) >= (self.B + 0xF) + c_flag:
+        if (self.A & 0xF) < (self.B + 0xF) + c_flag:
             self.F |= Flags.H
-        if self.A >= self.B + c_flag:
+        if self.A < self.B + c_flag:
             self.F |= Flags.C
         self.A = (self.A - self.B - c_flag) & 0xFF
         if self.A == 0:
@@ -1501,9 +1504,9 @@ H: %02x   L: %02x   Ints: %s
         # SBC A, C
         c_flag = (self.F & Flags.C) / Flags.C
         self.F = Flags.N
-        if (self.A & 0xF) >= (self.C + 0xF) + c_flag:
+        if (self.A & 0xF) < (self.C + 0xF) + c_flag:
             self.F |= Flags.H
-        if self.A >= self.C + c_flag:
+        if self.A < self.C + c_flag:
             self.F |= Flags.C
         self.A = (self.A - self.C - c_flag) & 0xFF
         if self.A == 0:
@@ -1513,9 +1516,9 @@ H: %02x   L: %02x   Ints: %s
         # SBC A, D
         c_flag = (self.F & Flags.C) / Flags.C
         self.F = Flags.N
-        if (self.A & 0xF) >= (self.D + 0xF) + c_flag:
+        if (self.A & 0xF) < (self.D + 0xF) + c_flag:
             self.F |= Flags.H
-        if self.A >= self.D + c_flag:
+        if self.A < self.D + c_flag:
             self.F |= Flags.C
         self.A = (self.A - self.D - c_flag) & 0xFF
         if self.A == 0:
@@ -1525,9 +1528,9 @@ H: %02x   L: %02x   Ints: %s
         # SBC A, E
         c_flag = (self.F & Flags.C) / Flags.C
         self.F = Flags.N
-        if (self.A & 0xF) >= (self.E + 0xF) + c_flag:
+        if (self.A & 0xF) < (self.E + 0xF) + c_flag:
             self.F |= Flags.H
-        if self.A >= self.E + c_flag:
+        if self.A < self.E + c_flag:
             self.F |= Flags.C
         self.A = (self.A - self.E - c_flag) & 0xFF
         if self.A == 0:
@@ -1537,9 +1540,9 @@ H: %02x   L: %02x   Ints: %s
         # SBC A, H
         c_flag = (self.F & Flags.C) / Flags.C
         self.F = Flags.N
-        if (self.A & 0xF) >= (self.H + 0xF) + c_flag:
+        if (self.A & 0xF) < (self.H + 0xF) + c_flag:
             self.F |= Flags.H
-        if self.A >= self.H + c_flag:
+        if self.A < self.H + c_flag:
             self.F |= Flags.C
         self.A = (self.A - self.H - c_flag) & 0xFF
         if self.A == 0:
@@ -1549,9 +1552,9 @@ H: %02x   L: %02x   Ints: %s
         # SBC A, L
         c_flag = (self.F & Flags.C) / Flags.C
         self.F = Flags.N
-        if (self.A & 0xF) >= (self.L + 0xF) + c_flag:
+        if (self.A & 0xF) < (self.L + 0xF) + c_flag:
             self.F |= Flags.H
-        if self.A >= self.L + c_flag:
+        if self.A < self.L + c_flag:
             self.F |= Flags.C
         self.A = (self.A - self.L - c_flag) & 0xFF
         if self.A == 0:
@@ -1562,9 +1565,9 @@ H: %02x   L: %02x   Ints: %s
         c_flag = (self.F & Flags.C) / Flags.C
         data = self.ram.read((self.H << 8) | self.L)
         self.F = Flags.N
-        if (self.A & 0xF) >= (data + 0xF) + c_flag:
+        if (self.A & 0xF) < (data + 0xF) + c_flag:
             self.F |= Flags.H
-        if self.A >= data + c_flag:
+        if self.A < data + c_flag:
             self.F |= Flags.C
         self.A = (self.A - data - c_flag) & 0xFF
         if self.A == 0:
@@ -1574,9 +1577,9 @@ H: %02x   L: %02x   Ints: %s
         # SBC A, A
         c_flag = (self.F & Flags.C) / Flags.C
         self.F = Flags.N
-        if (self.A & 0xF) >= (self.A + 0xF) + c_flag:
+        if (self.A & 0xF) < (self.A + 0xF) + c_flag:
             self.F |= Flags.H
-        if self.A >= self.A + c_flag:
+        if self.A < self.A + c_flag:
             self.F |= Flags.C
         self.A = (self.A - self.A - c_flag) & 0xFF
         if self.A == 0:
@@ -1758,9 +1761,9 @@ H: %02x   L: %02x   Ints: %s
         self.F = Flags.N
         if self.A == self.B:
             self.F |= Flags.Z
-        if (self.A & 0xF) >= (self.B & 0xF):
+        if (self.A & 0xF) < (self.B & 0xF):
             self.F |= Flags.H
-        if self.A >= self.B:
+        if self.A < self.B:
             self.F |= Flags.C
 
     def op_B9(self):
@@ -1768,9 +1771,9 @@ H: %02x   L: %02x   Ints: %s
         self.F = Flags.N
         if self.A == self.C:
             self.F |= Flags.Z
-        if (self.A & 0xF) >= (self.C & 0xF):
+        if (self.A & 0xF) < (self.C & 0xF):
             self.F |= Flags.H
-        if self.A >= self.C:
+        if self.A < self.C:
             self.F |= Flags.C
     
     def op_BA(self):
@@ -1778,9 +1781,9 @@ H: %02x   L: %02x   Ints: %s
         self.F = Flags.N
         if self.A == self.D:
             self.F |= Flags.Z
-        if (self.A & 0xF) >= (self.D & 0xF):
+        if (self.A & 0xF) < (self.D & 0xF):
             self.F |= Flags.H
-        if self.A >= self.D:
+        if self.A < self.D:
             self.F |= Flags.C
     
     def op_BB(self):
@@ -1788,9 +1791,9 @@ H: %02x   L: %02x   Ints: %s
         self.F = Flags.N
         if self.A == self.E:
             self.F |= Flags.Z
-        if (self.A & 0xF) >= (self.E & 0xF):
+        if (self.A & 0xF) < (self.E & 0xF):
             self.F |= Flags.H
-        if self.A >= self.E:
+        if self.A < self.E:
             self.F |= Flags.C
     
     def op_BC(self):
@@ -1798,9 +1801,9 @@ H: %02x   L: %02x   Ints: %s
         self.F = Flags.N
         if self.A == self.H:
             self.F |= Flags.Z
-        if (self.A & 0xF) >= (self.H & 0xF):
+        if (self.A & 0xF) < (self.H & 0xF):
             self.F |= Flags.H
-        if self.A >= self.H:
+        if self.A < self.H:
             self.F |= Flags.C
     
     def op_BD(self):
@@ -1808,9 +1811,9 @@ H: %02x   L: %02x   Ints: %s
         self.F = Flags.N
         if self.A == self.L:
             self.F |= Flags.Z
-        if (self.A & 0xF) >= (self.L & 0xF):
+        if (self.A & 0xF) < (self.L & 0xF):
             self.F |= Flags.H
-        if self.A >= self.L:
+        if self.A < self.L:
             self.F |= Flags.C
     
     def op_BE(self):
@@ -1819,9 +1822,9 @@ H: %02x   L: %02x   Ints: %s
         data = self.ram.read((self.H << 8) | self.L)
         if self.A == data:
             self.F |= Flags.Z
-        if (self.A & 0xF) >= (data & 0xF):
+        if (self.A & 0xF) < (data & 0xF):
             self.F |= Flags.H
-        if self.A >= data:
+        if self.A < data:
             self.F |= Flags.C
     
     def op_BF(self):
@@ -1829,9 +1832,9 @@ H: %02x   L: %02x   Ints: %s
         self.F = Flags.N
         if self.A == self.A:
             self.F |= Flags.Z
-        if (self.A & 0xF) >= (self.A & 0xF):
+        if (self.A & 0xF) < (self.A & 0xF):
             self.F |= Flags.H
-        if self.A >= self.A:
+        if self.A < self.A:
             self.F |= Flags.C
 
     def op_C0(self):
@@ -1997,9 +2000,9 @@ H: %02x   L: %02x   Ints: %s
     def op_D6(self, data):
         # SUB A, #
         self.F = Flags.N
-        if (self.A & 7) >= (data & 7):
+        if (self.A & 7) < (data & 7):
             self.F |= Flags.H
-        if self.A >= data:
+        if self.A < data:
             self.F |= Flags.C
         self.A = (self.A - data) & 0xFF
         if self.A == 0:
@@ -2057,9 +2060,9 @@ H: %02x   L: %02x   Ints: %s
         # SBC A, n
         c_flag = (self.F & Flags.C) / Flags.C
         self.F = Flags.N
-        if (self.A & 0xF) >= (data + 0xF) + c_flag:
+        if (self.A & 0xF) < (data + 0xF) + c_flag:
             self.F |= Flags.H
-        if self.A >= data + c_flag:
+        if self.A < data + c_flag:
             self.F |= Flags.C
         self.A = (self.A - data - c_flag) & 0xFF
         if self.A == 0:
@@ -4002,6 +4005,9 @@ class gb_ram(object):
                 offset = self.mmio[0x46] * 0x0100
                 for i in range(0xA0):
                     self.sprite_info[i] = self.read(offset+i)
+            elif p == 0xFF02:
+                if d & 0x80 == 0x80:
+                    print chr(self.mmio[0x01])
         elif p >= 0xFEA0:
             # Nothing here
             return
@@ -4198,7 +4204,7 @@ GPU Mode: %d    Mode Clock: %d    Line: %3d (%02x)
                             pallette_index = pix_hi * 2 + pix_lo
                             color = (pallette >> (pallette_index * 2)) & 3
                             
-                            if above or self.pixels[self.line][pix] == 0:
+                            if (above or self.pixels[self.line][pix] == 0) and color != 0:
                                 self.pixels[self.line][pix] = color
                 else:
                     # 8x16 mode

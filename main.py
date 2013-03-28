@@ -1,5 +1,6 @@
 from gb import Gameboy
 from display import Display
+import sys
 
 def main(rom_file):
     game = Gameboy()
@@ -14,6 +15,7 @@ def main(rom_file):
     disp.root.mainloop()
 
 if __name__ == "__main__":
-    #main("test1/TESTGAME.GB")
-    #main("test2/TESTGAME.GB")
-    main("Tetris.gb")
+    rom = "Tetris.gb"
+    if len(sys.argv) > 1:
+        rom = sys.argv[1]
+    main(rom)
