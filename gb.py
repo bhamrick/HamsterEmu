@@ -1409,7 +1409,7 @@ H: %02x   L: %02x   Ints: %s
     def op_90(self):
         # SUB A, B
         self.F = Flags.N
-        if (self.A & 7) < (self.B & 7):
+        if (self.A & 0xF) < (self.B & 0xF):
             self.F |= Flags.H
         if self.A < self.B:
             self.F |= Flags.C
@@ -1420,7 +1420,7 @@ H: %02x   L: %02x   Ints: %s
     def op_91(self):
         # SUB A, C
         self.F = Flags.N
-        if (self.A & 7) < (self.C & 7):
+        if (self.A & 0xF) < (self.C & 0xF):
             self.F |= Flags.H
         if self.A < self.C:
             self.F |= Flags.C
@@ -1431,7 +1431,7 @@ H: %02x   L: %02x   Ints: %s
     def op_92(self):
         # SUB A, D
         self.F = Flags.N
-        if (self.A & 7) < (self.D & 7):
+        if (self.A & 0xF) < (self.D & 0xF):
             self.F |= Flags.H
         if self.A < self.D:
             self.F |= Flags.C
@@ -1442,7 +1442,7 @@ H: %02x   L: %02x   Ints: %s
     def op_93(self):
         # SUB A, E
         self.F = Flags.N
-        if (self.A & 7) < (self.E & 7):
+        if (self.A & 0xF) < (self.E & 0xF):
             self.F |= Flags.H
         if self.A < self.E:
             self.F |= Flags.C
@@ -1453,7 +1453,7 @@ H: %02x   L: %02x   Ints: %s
     def op_94(self):
         # SUB A, H
         self.F = Flags.N
-        if (self.A & 7) < (self.H & 7):
+        if (self.A & 0xF) < (self.H & 0xF):
             self.F |= Flags.H
         if self.A < self.H:
             self.F |= Flags.C
@@ -1464,7 +1464,7 @@ H: %02x   L: %02x   Ints: %s
     def op_95(self):
         # SUB A, L
         self.F = Flags.N
-        if (self.A & 7) < (self.L & 7):
+        if (self.A & 0xF) < (self.L & 0xF):
             self.F |= Flags.H
         if self.A < self.L:
             self.F |= Flags.C
@@ -1476,7 +1476,7 @@ H: %02x   L: %02x   Ints: %s
         # SUB A, (HL)
         self.F = Flags.N
         data = self.ram.read((self.H << 8) | self.L)
-        if (self.A & 7) < (data & 7):
+        if (self.A & 0xF) < (data & 0xF):
             self.F |= Flags.H
         if self.A < data:
             self.F |= Flags.C
@@ -1487,7 +1487,7 @@ H: %02x   L: %02x   Ints: %s
     def op_97(self):
         # SUB A, A
         self.F = Flags.N
-        if (self.A & 7) < (self.A & 7):
+        if (self.A & 0xF) < (self.A & 0xF):
             self.F |= Flags.H
         if self.A < self.A:
             self.F |= Flags.C
