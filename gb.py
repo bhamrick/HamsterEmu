@@ -2067,7 +2067,7 @@ H: %02x   L: %02x   Ints: %s
         # SBC A, n
         c_flag = (self.F & Flags.C) / Flags.C
         self.F = Flags.N
-        if (self.A & 0xF) < (data + 0xF) + c_flag:
+        if (self.A & 0xF) < (data & 0xF) + c_flag:
             self.F |= Flags.H
         if self.A < data + c_flag:
             self.F |= Flags.C
