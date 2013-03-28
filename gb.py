@@ -3,6 +3,8 @@ class Gameboy:
         self.cpu = gb_cpu()
         self.ram = self.cpu.ram
         self.gpu = gb_gpu(self.cpu, self.ram)
+        self.joypad = gb_joypad()
+        self.ram.joypad_obj = self.joypad
 
     def step_instruction(self):
         if self.cpu.halted:
@@ -255,7 +257,7 @@ class gb_cpu(object):
             ((), gb_cpu.op_C8, 8),
             ((), gb_cpu.op_C9, 8),
             ((2,), gb_cpu.op_CA, 12),
-            ((1,), gb_cpu.op_CB, 8), # TODO - some ops are not 8 cycles
+            ((1,), gb_cpu.op_CB, 8),
             ((2,), gb_cpu.op_CC, 12),
             ((2,), gb_cpu.op_CD, 12),
             ((1,), gb_cpu.op_CE, 8),
@@ -274,7 +276,7 @@ class gb_cpu(object):
             ((), gb_cpu.op_DB, 0),
             ((2,), gb_cpu.op_DC, 12),
             ((), gb_cpu.op_DD, 0),
-            ((), gb_cpu.op_DE, 8),
+            ((1), gb_cpu.op_DE, 8),
             ((), gb_cpu.op_DF, 32),
             ((1,), gb_cpu.op_E0, 12),
             ((), gb_cpu.op_E1, 12),
@@ -308,6 +310,72 @@ class gb_cpu(object):
             ((), gb_cpu.op_FD, 0),
             ((1,), gb_cpu.op_FE, 8),
             ((), gb_cpu.op_FF, 32),
+            ]
+        self.extra_ops_table = [
+            gb_cpu.op_CB_00, gb_cpu.op_CB_01, gb_cpu.op_CB_02, gb_cpu.op_CB_03,
+            gb_cpu.op_CB_04, gb_cpu.op_CB_05, gb_cpu.op_CB_06, gb_cpu.op_CB_07,
+            gb_cpu.op_CB_08, gb_cpu.op_CB_09, gb_cpu.op_CB_0A, gb_cpu.op_CB_0B,
+            gb_cpu.op_CB_0C, gb_cpu.op_CB_0D, gb_cpu.op_CB_0E, gb_cpu.op_CB_0F,
+            gb_cpu.op_CB_10, gb_cpu.op_CB_11, gb_cpu.op_CB_12, gb_cpu.op_CB_13,
+            gb_cpu.op_CB_14, gb_cpu.op_CB_15, gb_cpu.op_CB_16, gb_cpu.op_CB_17,
+            gb_cpu.op_CB_18, gb_cpu.op_CB_19, gb_cpu.op_CB_1A, gb_cpu.op_CB_1B,
+            gb_cpu.op_CB_1C, gb_cpu.op_CB_1D, gb_cpu.op_CB_1E, gb_cpu.op_CB_1F,
+            gb_cpu.op_CB_20, gb_cpu.op_CB_21, gb_cpu.op_CB_22, gb_cpu.op_CB_23,
+            gb_cpu.op_CB_24, gb_cpu.op_CB_25, gb_cpu.op_CB_26, gb_cpu.op_CB_27,
+            gb_cpu.op_CB_28, gb_cpu.op_CB_29, gb_cpu.op_CB_2A, gb_cpu.op_CB_2B,
+            gb_cpu.op_CB_2C, gb_cpu.op_CB_2D, gb_cpu.op_CB_2E, gb_cpu.op_CB_2F,
+            gb_cpu.op_CB_30, gb_cpu.op_CB_31, gb_cpu.op_CB_32, gb_cpu.op_CB_33,
+            gb_cpu.op_CB_34, gb_cpu.op_CB_35, gb_cpu.op_CB_36, gb_cpu.op_CB_37,
+            gb_cpu.op_CB_38, gb_cpu.op_CB_39, gb_cpu.op_CB_3A, gb_cpu.op_CB_3B,
+            gb_cpu.op_CB_3C, gb_cpu.op_CB_3D, gb_cpu.op_CB_3E, gb_cpu.op_CB_3F,
+            gb_cpu.op_CB_40, gb_cpu.op_CB_41, gb_cpu.op_CB_42, gb_cpu.op_CB_43,
+            gb_cpu.op_CB_44, gb_cpu.op_CB_45, gb_cpu.op_CB_46, gb_cpu.op_CB_47,
+            gb_cpu.op_CB_48, gb_cpu.op_CB_49, gb_cpu.op_CB_4A, gb_cpu.op_CB_4B,
+            gb_cpu.op_CB_4C, gb_cpu.op_CB_4D, gb_cpu.op_CB_4E, gb_cpu.op_CB_4F,
+            gb_cpu.op_CB_50, gb_cpu.op_CB_51, gb_cpu.op_CB_52, gb_cpu.op_CB_53,
+            gb_cpu.op_CB_54, gb_cpu.op_CB_55, gb_cpu.op_CB_56, gb_cpu.op_CB_57,
+            gb_cpu.op_CB_58, gb_cpu.op_CB_59, gb_cpu.op_CB_5A, gb_cpu.op_CB_5B,
+            gb_cpu.op_CB_5C, gb_cpu.op_CB_5D, gb_cpu.op_CB_5E, gb_cpu.op_CB_5F,
+            gb_cpu.op_CB_60, gb_cpu.op_CB_61, gb_cpu.op_CB_62, gb_cpu.op_CB_63,
+            gb_cpu.op_CB_64, gb_cpu.op_CB_65, gb_cpu.op_CB_66, gb_cpu.op_CB_67,
+            gb_cpu.op_CB_68, gb_cpu.op_CB_69, gb_cpu.op_CB_6A, gb_cpu.op_CB_6B,
+            gb_cpu.op_CB_6C, gb_cpu.op_CB_6D, gb_cpu.op_CB_6E, gb_cpu.op_CB_6F,
+            gb_cpu.op_CB_70, gb_cpu.op_CB_71, gb_cpu.op_CB_72, gb_cpu.op_CB_73,
+            gb_cpu.op_CB_74, gb_cpu.op_CB_75, gb_cpu.op_CB_76, gb_cpu.op_CB_77,
+            gb_cpu.op_CB_78, gb_cpu.op_CB_79, gb_cpu.op_CB_7A, gb_cpu.op_CB_7B,
+            gb_cpu.op_CB_7C, gb_cpu.op_CB_7D, gb_cpu.op_CB_7E, gb_cpu.op_CB_7F,
+            gb_cpu.op_CB_80, gb_cpu.op_CB_81, gb_cpu.op_CB_82, gb_cpu.op_CB_83,
+            gb_cpu.op_CB_84, gb_cpu.op_CB_85, gb_cpu.op_CB_86, gb_cpu.op_CB_87,
+            gb_cpu.op_CB_88, gb_cpu.op_CB_89, gb_cpu.op_CB_8A, gb_cpu.op_CB_8B,
+            gb_cpu.op_CB_8C, gb_cpu.op_CB_8D, gb_cpu.op_CB_8E, gb_cpu.op_CB_8F,
+            gb_cpu.op_CB_90, gb_cpu.op_CB_91, gb_cpu.op_CB_92, gb_cpu.op_CB_93,
+            gb_cpu.op_CB_94, gb_cpu.op_CB_95, gb_cpu.op_CB_96, gb_cpu.op_CB_97,
+            gb_cpu.op_CB_98, gb_cpu.op_CB_99, gb_cpu.op_CB_9A, gb_cpu.op_CB_9B,
+            gb_cpu.op_CB_9C, gb_cpu.op_CB_9D, gb_cpu.op_CB_9E, gb_cpu.op_CB_9F,
+            gb_cpu.op_CB_A0, gb_cpu.op_CB_A1, gb_cpu.op_CB_A2, gb_cpu.op_CB_A3,
+            gb_cpu.op_CB_A4, gb_cpu.op_CB_A5, gb_cpu.op_CB_A6, gb_cpu.op_CB_A7,
+            gb_cpu.op_CB_A8, gb_cpu.op_CB_A9, gb_cpu.op_CB_AA, gb_cpu.op_CB_AB,
+            gb_cpu.op_CB_AC, gb_cpu.op_CB_AD, gb_cpu.op_CB_AE, gb_cpu.op_CB_AF,
+            gb_cpu.op_CB_B0, gb_cpu.op_CB_B1, gb_cpu.op_CB_B2, gb_cpu.op_CB_B3,
+            gb_cpu.op_CB_B4, gb_cpu.op_CB_B5, gb_cpu.op_CB_B6, gb_cpu.op_CB_B7,
+            gb_cpu.op_CB_B8, gb_cpu.op_CB_B9, gb_cpu.op_CB_BA, gb_cpu.op_CB_BB,
+            gb_cpu.op_CB_BC, gb_cpu.op_CB_BD, gb_cpu.op_CB_BE, gb_cpu.op_CB_BF,
+            gb_cpu.op_CB_C0, gb_cpu.op_CB_C1, gb_cpu.op_CB_C2, gb_cpu.op_CB_C3,
+            gb_cpu.op_CB_C4, gb_cpu.op_CB_C5, gb_cpu.op_CB_C6, gb_cpu.op_CB_C7,
+            gb_cpu.op_CB_C8, gb_cpu.op_CB_C9, gb_cpu.op_CB_CA, gb_cpu.op_CB_CB,
+            gb_cpu.op_CB_CC, gb_cpu.op_CB_CD, gb_cpu.op_CB_CE, gb_cpu.op_CB_CF,
+            gb_cpu.op_CB_D0, gb_cpu.op_CB_D1, gb_cpu.op_CB_D2, gb_cpu.op_CB_D3,
+            gb_cpu.op_CB_D4, gb_cpu.op_CB_D5, gb_cpu.op_CB_D6, gb_cpu.op_CB_D7,
+            gb_cpu.op_CB_D8, gb_cpu.op_CB_D9, gb_cpu.op_CB_DA, gb_cpu.op_CB_DB,
+            gb_cpu.op_CB_DC, gb_cpu.op_CB_DD, gb_cpu.op_CB_DE, gb_cpu.op_CB_DF,
+            gb_cpu.op_CB_E0, gb_cpu.op_CB_E1, gb_cpu.op_CB_E2, gb_cpu.op_CB_E3,
+            gb_cpu.op_CB_E4, gb_cpu.op_CB_E5, gb_cpu.op_CB_E6, gb_cpu.op_CB_E7,
+            gb_cpu.op_CB_E8, gb_cpu.op_CB_E9, gb_cpu.op_CB_EA, gb_cpu.op_CB_EB,
+            gb_cpu.op_CB_EC, gb_cpu.op_CB_ED, gb_cpu.op_CB_EE, gb_cpu.op_CB_EF,
+            gb_cpu.op_CB_F0, gb_cpu.op_CB_F1, gb_cpu.op_CB_F2, gb_cpu.op_CB_F3,
+            gb_cpu.op_CB_F4, gb_cpu.op_CB_F5, gb_cpu.op_CB_F6, gb_cpu.op_CB_F7,
+            gb_cpu.op_CB_F8, gb_cpu.op_CB_F9, gb_cpu.op_CB_FA, gb_cpu.op_CB_FB,
+            gb_cpu.op_CB_FC, gb_cpu.op_CB_FD, gb_cpu.op_CB_FE, gb_cpu.op_CB_FF,
             ]
 
     def load_rom(self, fname):
@@ -1803,622 +1871,10 @@ H: %02x   L: %02x   Ints: %s
         if (self.F & Flags.Z) == Flags.Z:
             self.PC = addr
 
-    def op_CB(self, reg_id):
-        # Extra ops
-        self.F = 0
-        if reg_id == 0x37:
-            # SWAP A
-            self.A = (self.A >> 4) | ((self.A & 0xF) << 4)
-            if self.A == 0:
-                self.F |= Flags.Z
-        elif reg_id == 0x07:
-            # RLC A
-            high_bit = (self.A & 0x80) >> 7
-            self.A = ((self.A << 1) & 0xFF) | high_bit
-            self.F = high_bit * Flags.C
-            if self.A == 0:
-                self.F |= Flags.Z
-        elif reg_id == 0x17:
-            # RL A
-            high_bit = (self.A & 0x80) >> 7
-            c_flag = (self.F & Flags.C) / Flags.C
-            self.A = ((self.A << 1) & 0xFF) | c_flag
-            self.F = high_bit * Flags.C
-            if self.A == 0:
-                self.F |= Flags.Z
-        elif reg_id == 0x0F:
-            # RRC A
-            low_bit = (self.A & 1)
-            self.A = (self.A >> 1) | (low_bit << 7)
-            self.F = low_bit * Flags.C
-            if self.A == 0:
-                self.F |= Flags.Z
-        elif reg_id == 0x30:
-            # SWAP B
-            self.B = (self.B >> 4) | ((self.B & 0xF) << 4)
-            if self.B == 0:
-                self.F |= Flags.Z
-        elif reg_id == 0x00:
-            # RLC B
-            high_bit = (self.B & 0x80) >> 7
-            self.B = ((self.B << 1) & 0xFF) | high_bit
-            self.F = high_bit * Flags.C
-            if self.B == 0:
-                self.F |= Flags.Z
-        elif reg_id == 0x10:
-            # RL B
-            high_bit = (self.B & 0x80) >> 7
-            c_flag = (self.F & Flags.C) / Flags.C
-            self.B = ((self.B << 1) & 0xFF) | c_flag
-            self.F = high_bit * flags.C
-            if self.B == 0:
-                self.F |= Flags.Z
-        elif reg_id == 0x31:
-            # SWAP C
-            self.C = (self.C >> 4) | ((self.C & 0xF) << 4)
-            if self.C == 0:
-                self.F |= Flags.Z
-        elif reg_id == 0x01:
-            # RLC C
-            high_bit = (self.C & 0x80) >> 7
-            self.C = ((self.C << 1) & 0xFF) | high_bit
-            self.F = high_bit * Flags.C
-            if self.C == 0:
-                self.F |= Flags.Z
-        elif reg_id == 0x11:
-            # RL C
-            high_bit = (self.C & 0x80) >> 7
-            c_flag = (self.F & Flags.C) / Flags.C
-            self.C = ((self.C << 1) & 0xFF) | c_flag
-            self.F = high_bit * flags.C
-            if self.C == 0:
-                self.F |= Flags.Z
-        elif reg_id == 0x32:
-            # SWAP D
-            self.D = (self.D >> 4) | ((self.D & 0xF) << 4)
-            if self.D == 0:
-                self.F |= Flags.Z
-        elif reg_id == 0x02:
-            # RLC D
-            high_bit = (self.D & 0x80) >> 7
-            self.D = ((self.D << 1) & 0xFF) | high_bit
-            self.F = high_bit * Flags.C
-            if self.D == 0:
-                self.F |= Flags.Z
-        elif reg_id == 0x12:
-            # RL D
-            high_bit = (self.D & 0x80) >> 7
-            c_flag = (self.F & Flags.C) / Flags.C
-            self.D = ((self.D << 1) & 0xFF) | c_flag
-            self.F = high_bit * flags.C
-            if self.D == 0:
-                self.F |= Flags.Z
-        elif reg_id == 0x33:
-            # SWAP E
-            self.E = (self.E >> 4) | ((self.E & 0xF) << 4)
-            if self.E == 0:
-                self.F |= Flags.Z
-        elif reg_id == 0x03:
-            # RLC E
-            high_bit = (self.E & 0x80) >> 7
-            self.E = ((self.E << 1) & 0xFF) | high_bit
-            self.F = high_bit * Flags.C
-            if self.E == 0:
-                self.F |= Flags.Z
-        elif reg_id == 0x13:
-            # RL E
-            high_bit = (self.E & 0x80) >> 7
-            c_flag = (self.F & Flags.C) / Flags.C
-            self.E = ((self.E << 1) & 0xFF) | c_flag
-            self.F = high_bit * flags.C
-            if self.E == 0:
-                self.F |= Flags.Z
-        elif reg_id == 0x34:
-            # SWAP H
-            self.H = (self.H >> 4) | ((self.H & 0xF) << 4)
-            if self.H == 0:
-                self.F |= Flags.Z
-        elif reg_id == 0x04:
-            # RLC H
-            high_bit = (self.H & 0x80) >> 7
-            self.H = ((self.H << 1) & 0xFF) | high_bit
-            self.F = high_bit * Flags.C
-            if self.H == 0:
-                self.F |= Flags.Z
-        elif reg_id == 0x14:
-            # RL H
-            high_bit = (self.H & 0x80) >> 7
-            c_flag = (self.F & Flags.C) / Flags.C
-            self.H = ((self.H << 1) & 0xFF) | c_flag
-            self.F = high_bit * flags.C
-            if self.H == 0:
-                self.F |= Flags.Z
-        elif reg_id == 0x35:
-            # SWAP L
-            self.L = (self.L >> 4) | ((self.L & 0xF) << 4)
-            if self.L == 0:
-                self.F |= Flags.Z
-        elif reg_id == 0x05:
-            # RLC L
-            high_bit = (self.L & 0x80) >> 7
-            self.L = ((self.L << 1) & 0xFF) | high_bit
-            self.F = high_bit * Flags.C
-            if self.L == 0:
-                self.F |= Flags.Z
-        elif reg_id == 0x15:
-            # RL L
-            high_bit = (self.L & 0x80) >> 7
-            c_flag = (self.F & Flags.C) / Flags.C
-            self.L = ((self.L << 1) & 0xFF) | c_flag
-            self.F = high_bit * flags.C
-            if self.L == 0:
-                self.F |= Flags.Z
-        elif reg_id == 0x36:
-            # SWAP (HL)
-            data = self.ram.read((self.H << 8) | self.L)
-            data = (data >> 4) | ((data & 0xF) << 4)
-            if data == 0:
-                self.F |= Flags.Z
-            self.ram.write((self.H << 8) | self.L, data)
-        elif reg_id == 0x06:
-            # RLC (HL)
-            data = self.ram.read((self.H << 8) | self.L)
-            high_bit = (data & 0x80) >> 7
-            data = ((data << 1) & 0xFF) | high_bit
-            self.F = high_bit * Flags.C
-            if data == 0:
-                self.F |= Flags.Z
-            self.ram.write((self.H << 8) | self.L, data)
-        elif reg_id == 0x16:
-            # RL (HL)
-            data = self.ram.read((self.H << 8) | self.L)
-            high_bit = (data & 0x80) >> 7
-            c_flag = (self.F & Flags.C) / Flags.C
-            data = ((data << 1) & 0xFF) | c_flag
-            self.F = high_bit * flags.C
-            if data == 0:
-                self.F |= Flags.Z
-            self.ram.write((self.H << 8) | self.L, data)
-        elif reg_id == 0x08:
-            # RRC B
-            low_bit = (self.B & 1)
-            self.B = (self.B >> 1) | (low_bit << 7)
-            self.F = low_bit * Flags.C
-            if self.B == 0:
-                self.F |= Flags.Z
-        elif reg_id == 0x09:
-            # RRC C
-            low_bit = (self.C & 1)
-            self.C = (self.C >> 1) | (low_bit << 7)
-            self.F = low_bit * Flags.C
-            if self.C == 0:
-                self.F |= Flags.Z
-        elif reg_id == 0x0A:
-            # RRC D
-            low_bit = (self.D & 1)
-            self.D = (self.D >> 1) | (low_bit << 7)
-            self.F = low_bit * Flags.C
-            if self.D == 0:
-                self.F |= Flags.Z
-        elif reg_id == 0x0B:
-            # RRC E
-            low_bit = (self.E & 1)
-            self.E = (self.E >> 1) | (low_bit << 7)
-            self.F = low_bit * Flags.C
-            if self.E == 0:
-                self.F |= Flags.Z
-        elif reg_id == 0x0C:
-            # RRC H
-            low_bit = (self.H & 1)
-            self.H = (self.H >> 1) | (low_bit << 7)
-            self.F = low_bit * Flags.C
-            if self.H == 0:
-                self.F |= Flags.Z
-        elif reg_id == 0x0D:
-            # RRC L
-            low_bit = (self.L & 1)
-            self.L = (self.L >> 1) | (low_bit << 7)
-            self.F = low_bit * Flags.C
-            if self.L == 0:
-                self.F |= Flags.Z
-        elif reg_id == 0x0E:
-            # RRC (HL)
-            data = self.ram.read((self.H << 8) | self.L)
-            low_bit = (data & 1)
-            data = (data >> 1) | (low_bit << 7)
-            self.F = low_bit * Flags.C
-            if data == 0:
-                self.F |= Flags.Z
-            self.ram.write((self.H << 8) | self.L, data)
-        elif reg_id == 0x1F:
-            # RR A
-            low_bit = self.A & 1
-            c_flag = (self.F & Flags.C) / Flags.C
-            self.A = (self.A >> 1) | (c_flag << 7)
-            self.F = low_bit * Flags.C
-            if self.A == 0:
-                self.F |= Flags.Z
-        elif reg_id == 0x18:
-            # RR B
-            low_bit = self.B & 1
-            c_flag = (self.F & Flags.C) / Flags.C
-            self.B = (self.B >> 1) | (c_flag << 7)
-            self.F = low_bit * Flags.C
-            if self.B == 0:
-                self.F |= Flags.Z
-        elif reg_id == 0x19:
-            # RR C
-            low_bit = self.C & 1
-            c_flag = (self.F & Flags.C) / Flags.C
-            self.C = (self.C >> 1) | (c_flag << 7)
-            self.F = low_bit * Flags.C
-            if self.C == 0:
-                self.F |= Flags.Z
-        elif reg_id == 0x1A:
-            # RR D
-            low_bit = self.D & 1
-            c_flag = (self.F & Flags.C) / Flags.C
-            self.D = (self.D >> 1) | (c_flag << 7)
-            self.F = low_bit * Flags.C
-            if self.D == 0:
-                self.F |= Flags.Z
-        elif reg_id == 0x1B:
-            # RR E
-            low_bit = self.E & 1
-            c_flag = (self.F & Flags.C) / Flags.C
-            self.E = (self.E >> 1) | (c_flag << 7)
-            self.F = low_bit * Flags.C
-            if self.E == 0:
-                self.F |= Flags.Z
-        elif reg_id == 0x1C:
-            # RR H
-            low_bit = self.H & 1
-            c_flag = (self.F & Flags.C) / Flags.C
-            self.H = (self.H >> 1) | (c_flag << 7)
-            self.F = low_bit * Flags.C
-            if self.H == 0:
-                self.F |= Flags.Z
-        elif reg_id == 0x1D:
-            # RR L
-            low_bit = self.L & 1
-            c_flag = (self.F & Flags.C) / Flags.C
-            self.L = (self.L >> 1) | (c_flag << 7)
-            self.F = low_bit * Flags.C
-            if self.L == 0:
-                self.F |= Flags.Z
-        elif reg_id == 0x1E:
-            # RR (HL)
-            data = self.ram.read((self.H << 8) | self.L)
-            low_bit = data & 1
-            c_flag = (self.F & Flags.C) / Flags.C
-            data = (data >> 1) | (c_flag << 7)
-            self.F = low_bit * Flags.C
-            if data == 0:
-                self.F |= Flags.Z
-            self.ram.write((self.H << 8) | self.L, data)
-        elif reg_id == 0x27:
-            # SLA A
-            high_bit = (self.A & 0x80) >> 7
-            self.A = (self.A << 1) & 0xFF
-            self.F = high_bit * Flags.C
-            if self.A == 0:
-                self.F |= Flags.Z
-        elif reg_id == 0x20:
-            # SLA B
-            high_bit = (self.B & 0x80) >> 7
-            self.B = (self.B << 1) & 0xFF
-            self.F = high_bit * Flags.C
-            if self.B == 0:
-                self.F |= Flags.Z
-        elif reg_id == 0x21:
-            # SLA C
-            high_bit = (self.C & 0x80) >> 7
-            self.C = (self.C << 1) & 0xFF
-            self.F = high_bit * Flags.C
-            if self.C == 0:
-                self.F |= Flags.Z
-        elif reg_id == 0x22:
-            # SLA D
-            high_bit = (self.D & 0x80) >> 7
-            self.D = (self.D << 1) & 0xFF
-            self.F = high_bit * Flags.C
-            if self.D == 0:
-                self.F |= Flags.Z
-        elif reg_id == 0x23:
-            # SLA E
-            high_bit = (self.E & 0x80) >> 7
-            self.E = (self.E << 1) & 0xFF
-            self.F = high_bit * Flags.C
-            if self.E == 0:
-                self.F |= Flags.Z
-        elif reg_id == 0x24:
-            # SLA H
-            high_bit = (self.H & 0x80) >> 7
-            self.H = (self.H << 1) & 0xFF
-            self.F = high_bit * Flags.C
-            if self.H == 0:
-                self.F |= Flags.Z
-        elif reg_id == 0x25:
-            # SLA L
-            high_bit = (self.L & 0x80) >> 7
-            self.L = (self.L << 1) & 0xFF
-            self.F = high_bit * Flags.C
-            if self.L == 0:
-                self.F |= Flags.Z
-        elif reg_id == 0x26:
-            # SLA (HL)
-            data = self.ram.read((self.H << 8) | self.L)
-            high_bit = (data & 0x80) >> 7
-            data = (data << 1) & 0xFF
-            self.F = high_bit * Flags.C
-            if data == 0:
-                self.F |= Flags.Z
-            self.ram.write((self.H << 8) | self.L, data)
-        elif reg_id == 0x2F:
-            # SRA A
-            low_bit = self.A & 1
-            self.A = (self.A & 0x80) | (self.A >> 1)
-            self.F = low_bit * Flags.C
-            if self.A == 0:
-                self.F |= Flags.Z
-        elif reg_id == 0x28:
-            # SRA B
-            low_bit = self.B & 1
-            self.B = (self.B & 0x80) | (self.B >> 1)
-            self.F = low_bit * Flags.C
-            if self.B == 0:
-                self.F |= Flags.Z
-        elif reg_id == 0x29:
-            # SRA C
-            low_bit = self.C & 1
-            self.C = (self.C & 0x80) | (self.C >> 1)
-            self.F = low_bit * Flags.C
-            if self.C == 0:
-                self.F |= Flags.Z
-        elif reg_id == 0x2A:
-            # SRA D
-            low_bit = self.D & 1
-            self.D = (self.D & 0x80) | (self.D >> 1)
-            self.F = low_bit * Flags.C
-            if self.D == 0:
-                self.F |= Flags.Z
-        elif reg_id == 0x2B:
-            # SRA E
-            low_bit = self.E & 1
-            self.E = (self.E & 0x80) | (self.E >> 1)
-            self.F = low_bit * Flags.C
-            if self.E == 0:
-                self.F |= Flags.Z
-        elif reg_id == 0x2C:
-            # SRA H
-            low_bit = self.H & 1
-            self.H = (self.H & 0x80) | (self.H >> 1)
-            self.F = low_bit * Flags.C
-            if self.H == 0:
-                self.F |= Flags.Z
-        elif reg_id == 0x2D:
-            # SRA L
-            low_bit = self.L & 1
-            self.L = (self.L & 0x80) | (self.L >> 1)
-            self.F = low_bit * Flags.C
-            if self.L == 0:
-                self.F |= Flags.Z
-        elif reg_id == 0x2E:
-            # SRA (HL)
-            data = self.ram.read((self.H << 8) | self.L)
-            low_bit = data & 1
-            self.L = (data & 0x80) | (data >> 1)
-            self.F = low_bit * Flags.C
-            if data == 0:
-                self.F |= Flags.Z
-            self.ram.write((self.H << 8) | self.L, data)
-        elif reg_id == 0x3F:
-            # SRL A
-            low_bit = self.A & 1
-            self.A = self.A >> 1
-            self.F = low_bit * Flags.C
-            if self.A == 0:
-                self.F |= Flags.Z
-        elif reg_id == 0x38:
-            # SRL B
-            low_bit = self.B & 1
-            self.B = self.B >> 1
-            self.F = low_bit * Flags.C
-            if self.B == 0:
-                self.F |= Flags.Z
-        elif reg_id == 0x39:
-            # SRL C
-            low_bit = self.C & 1
-            self.C = self.C >> 1
-            self.F = low_bit * Flags.C
-            if self.C == 0:
-                self.F |= Flags.Z
-        elif reg_id == 0x3A:
-            # SRL D
-            low_bit = self.D & 1
-            self.D = self.D >> 1
-            self.F = low_bit * Flags.C
-            if self.D == 0:
-                self.F |= Flags.Z
-        elif reg_id == 0x3B:
-            # SRL E
-            low_bit = self.E & 1
-            self.E = self.E >> 1
-            self.F = low_bit * Flags.C
-            if self.E == 0:
-                self.F |= Flags.Z
-        elif reg_id == 0x3C:
-            # SRL H
-            low_bit = self.H & 1
-            self.H = self.H >> 1
-            self.F = low_bit * Flags.C
-            if self.H == 0:
-                self.F |= Flags.Z
-        elif reg_id == 0x3D:
-            # SRL L
-            low_bit = self.L & 1
-            self.L = self.L >> 1
-            self.F = low_bit * Flags.C
-            if self.L == 0:
-                self.F |= Flags.Z
-        elif reg_id == 0x3E:
-            # SRL (HL)
-            data = self.ram.read((self.H << 8) | self.L)
-            low_bit = data & 1
-            data = data >> 1
-            self.F = low_bit * Flags.C
-            if data == 0:
-                self.F |= Flags.Z
-            self.ram.write((self.H << 8) | self.L, data)
-        elif reg_id == 0x47:
-            # BIT b, A - This op takes an additional byte
-            bit = self.ram.read(self.PC)
-            self.PC += 1
-            self.F &= Flags.C
-            self.F |= Flags.H
-            if (self.A & (1 << bit)) == 0:
-                self.F |= Flags.Z
-        elif reg_id == 0x40:
-            # BIT b, B - This op takes an additional byte
-            bit = self.ram.read(self.PC)
-            self.PC += 1
-            self.F &= Flags.C
-            self.F |= Flags.H
-            if (self.B & (1 << bit)) == 0:
-                self.F |= Flags.Z
-        elif reg_id == 0x41:
-            # BIT b, C - This op takes an additional byte
-            bit = self.ram.read(self.PC)
-            self.PC += 1
-            self.F &= Flags.C
-            self.F |= Flags.H
-            if (self.C & (1 << bit)) == 0:
-                self.F |= Flags.Z
-        elif reg_id == 0x42:
-            # BIT b, D - This op takes an additional byte
-            bit = self.ram.read(self.PC)
-            self.PC += 1
-            self.F &= Flags.C
-            self.F |= Flags.H
-            if (self.D & (1 << bit)) == 0:
-                self.F |= Flags.Z
-        elif reg_id == 0x43:
-            # BIT b, E - This op takes an additional byte
-            bit = self.ram.read(self.PC)
-            self.PC += 1
-            self.F &= Flags.C
-            self.F |= Flags.H
-            if (self.E & (1 << bit)) == 0:
-                self.F |= Flags.Z
-        elif reg_id == 0x44:
-            # BIT b, H - This op takes an additional byte
-            bit = self.ram.read(self.PC)
-            self.PC += 1
-            self.F &= Flags.C
-            self.F |= Flags.H
-            if (self.H & (1 << bit)) == 0:
-                self.F |= Flags.Z
-        elif reg_id == 0x45:
-            # BIT b, L - This op takes an additional byte
-            bit = self.ram.read(self.PC)
-            self.PC += 1
-            self.F &= Flags.C
-            self.F |= Flags.H
-            if (self.L & (1 << bit)) == 0:
-                self.F |= Flags.Z
-        elif reg_id == 0x46:
-            # BIT b, (HL) - This op takes an additional byte
-            bit = self.ram.read(self.PC)
-            self.PC += 1
-            self.F &= Flags.C
-            self.F |= Flags.H
-            data = self.ram.read((self.H << 8) | self.L)
-            if (data & (1 << bit)) == 0:
-                self.F |= Flags.Z
-        elif reg_id == 0xC7:
-            # SET b, A - This op takes an additional byte
-            bit = self.ram.read(self.PC)
-            self.PC += 1
-            self.A |= (1 << bit)
-        elif reg_id == 0xC0:
-            # SET b, B - This op takes an additional byte
-            bit = self.ram.read(self.PC)
-            self.PC += 1
-            self.B |= (1 << bit)
-        elif reg_id == 0xC1:
-            # SET b, C - This op takes an additional byte
-            bit = self.ram.read(self.PC)
-            self.PC += 1
-            self.C |= (1 << bit)
-        elif reg_id == 0xC2:
-            # SET b, D - This op takes an additional byte
-            bit = self.ram.read(self.PC)
-            self.PC += 1
-            self.D |= (1 << bit)
-        elif reg_id == 0xC3:
-            # SET b, E - This op takes an additional byte
-            bit = self.ram.read(self.PC)
-            self.PC += 1
-            self.E |= (1 << bit)
-        elif reg_id == 0xC4:
-            # SET b, H - This op takes an additional byte
-            bit = self.ram.read(self.PC)
-            self.PC += 1
-            self.H |= (1 << bit)
-        elif reg_id == 0xC5:
-            # SET b, L - This op takes an additional byte
-            bit = self.ram.read(self.PC)
-            self.PC += 1
-            self.L |= (1 << bit)
-        elif reg_id == 0xC6:
-            # SET b, (HL) - This op takes an additional byte
-            bit = self.ram.read(self.PC)
-            self.PC += 1
-            data = self.ram.read((self.H << 8) | self.L)
-            data |= (1 << bit)
-            self.ram.write((self.H << 8) | self.L, data)
-        elif reg_id == 0x87:
-            # RES b, A - This op takes an additional byte
-            bit = self.ram.read(self.PC)
-            self.PC += 1
-            self.A &= ~(1 << bit)
-        elif reg_id == 0x80:
-            # RES b, B - This op takes an additional byte
-            bit = self.ram.read(self.PC)
-            self.PC += 1
-            self.B &= ~(1 << bit)
-        elif reg_id == 0x81:
-            # RES b, C - This op takes an additional byte
-            bit = self.ram.read(self.PC)
-            self.PC += 1
-            self.C &= ~(1 << bit)
-        elif reg_id == 0x82:
-            # RES b, D - This op takes an additional byte
-            bit = self.ram.read(self.PC)
-            self.PC += 1
-            self.D &= ~(1 << bit)
-        elif reg_id == 0x83:
-            # RES b, E - This op takes an additional byte
-            bit = self.ram.read(self.PC)
-            self.PC += 1
-            self.E &= ~(1 << bit)
-        elif reg_id == 0x84:
-            # RES b, H - This op takes an additional byte
-            bit = self.ram.read(self.PC)
-            self.PC += 1
-            self.H &= ~(1 << bit)
-        elif reg_id == 0x85:
-            # RES b, L - This op takes an additional byte
-            bit = self.ram.read(self.PC)
-            self.PC += 1
-            self.L &= ~(1 << bit)
-        elif reg_id == 0x86:
-            # RES b, (HL) - This op takes an additional byte
-            bit = self.ram.read(self.PC)
-            self.PC += 1
-            data = self.ram.read((self.H << 8) | self.L)
-            data &= ~(1 << bit)
-            self.ram.write((self.H << 8) | self.L, data)
+    def op_CB(self, sub_op):
+        # Extra ops dispatcher
+        sub_op_fn = self.extra_ops_table[sub_op]
+        sub_op_fn(self)
 
     def op_CC(self, addr):
         # CALLZ nn
@@ -2634,8 +2090,8 @@ H: %02x   L: %02x   Ints: %s
         self.SP = (self.SP + data) & 0xFFFF
 
     def op_E9(self):
-        # JP (HL)
-        addr = self.ram.read((self.H << 8) | self.L)
+        # JP HL
+        addr = (self.H << 8) | self.L
         self.PC = addr
 
     def op_EA(self, addr):
@@ -2769,6 +2225,1535 @@ H: %02x   L: %02x   Ints: %s
         self.ram.write(self.SP, self.PC & 0xFF)
         self.ram.write(self.SP+1, self.PC >> 8)
         self.PC = 0x38
+    
+    # Extended ops
+    def op_CB_00(self):
+        # RLC B
+        high_bit = (self.B & 0x80) >> 7
+        self.B = ((self.B << 1) & 0xFF) | high_bit
+        self.F = high_bit * Flags.C
+        if self.B == 0:
+            self.F |= Flags.Z
+    
+    def op_CB_01(self):
+        # RLC C
+        high_bit = (self.C & 0x80) >> 7
+        self.C = ((self.C << 1) & 0xFF) | high_bit
+        self.F = high_bit * Flags.C
+        if self.C == 0:
+            self.F |= Flags.Z
+    
+    def op_CB_02(self):
+        # RLC D
+        high_bit = (self.D & 0x80) >> 7
+        self.D = ((self.D << 1) & 0xFF) | high_bit
+        self.F = high_bit * Flags.C
+        if self.D == 0:
+            self.F |= Flags.Z
+    
+    def op_CB_03(self):
+        # RLC E
+        high_bit = (self.E & 0x80) >> 7
+        self.E = ((self.E << 1) & 0xFF) | high_bit
+        self.F = high_bit * Flags.C
+        if self.E == 0:
+            self.F |= Flags.Z
+    
+    def op_CB_04(self):
+        # RLC H
+        high_bit = (self.H & 0x80) >> 7
+        self.H = ((self.H << 1) & 0xFF) | high_bit
+        self.F = high_bit * Flags.C
+        if self.H == 0:
+            self.F |= Flags.Z
+    
+    def op_CB_05(self):
+        # RLC L
+        high_bit = (self.L & 0x80) >> 7
+        self.L = ((self.L << 1) & 0xFF) | high_bit
+        self.F = high_bit * Flags.C
+        if self.L == 0:
+            self.F |= Flags.Z
+    
+    def op_CB_06(self):
+        # RLC (HL)
+        data = self.ram.read((self.H << 8) | self.L)
+        high_bit = (data & 0x80) >> 7
+        data = ((data << 1) & 0xFF) | high_bit
+        self.F = high_bit * Flags.C
+        if data == 0:
+            self.F |= Flags.Z
+        self.ram.write((self.H << 8) | self.L, data)
+    
+    def op_CB_07(self):
+        # RLC A
+        high_bit = (self.A & 0x80) >> 7
+        self.A = ((self.A << 1) & 0xFF) | high_bit
+        self.F = high_bit * Flags.C
+        if self.A == 0:
+            self.F |= Flags.Z
+    
+    def op_CB_08(self):
+        # RRC B
+        low_bit = (self.B & 1)
+        self.B = (self.B >> 1) | (low_bit << 7)
+        self.F = low_bit * Flags.C
+        if self.B == 0:
+            self.F |= Flags.Z
+    
+    def op_CB_09(self):
+        # RRC C
+        low_bit = (self.C & 1)
+        self.C = (self.C >> 1) | (low_bit << 7)
+        self.F = low_bit * Flags.C
+        if self.C == 0:
+            self.F |= Flags.Z
+    
+    def op_CB_0A(self):
+        # RRC D
+        low_bit = (self.D & 1)
+        self.D = (self.D >> 1) | (low_bit << 7)
+        self.F = low_bit * Flags.C
+        if self.D == 0:
+            self.F |= Flags.Z
+    
+    def op_CB_0B(self):
+        # RRC E
+        low_bit = (self.E & 1)
+        self.E = (self.E >> 1) | (low_bit << 7)
+        self.F = low_bit * Flags.C
+        if self.E == 0:
+            self.F |= Flags.Z
+    
+    def op_CB_0C(self):
+        # RRC H
+        low_bit = (self.H & 1)
+        self.H = (self.H >> 1) | (low_bit << 7)
+        self.F = low_bit * Flags.C
+        if self.H == 0:
+            self.F |= Flags.Z
+    
+    def op_CB_0D(self):
+        # RRC L
+        low_bit = (self.L & 1)
+        self.L = (self.L >> 1) | (low_bit << 7)
+        self.F = low_bit * Flags.C
+        if self.L == 0:
+            self.F |= Flags.Z
+    
+    def op_CB_0E(self):
+        # RRC (HL)
+        data = self.ram.read((self.H << 8) | self.L)
+        low_bit = (data & 1)
+        data = (data >> 1) | (low_bit << 7)
+        self.F = low_bit * Flags.C
+        if data == 0:
+            self.F |= Flags.Z
+        self.ram.write((self.H << 8) | self.L, data)
+    
+    def op_CB_0F(self):
+        # RRC A
+        low_bit = (self.A & 1)
+        self.A = (self.A >> 1) | (low_bit << 7)
+        self.F = low_bit * Flags.C
+        if self.A == 0:
+            self.F |= Flags.Z
+    
+    def op_CB_10(self):
+        # RL B
+        high_bit = (self.B & 0x80) >> 7
+        c_flag = (self.F & Flags.C) / Flags.C
+        self.B = ((self.B << 1) & 0xFF) | c_flag
+        self.F = high_bit * flags.C
+        if self.B == 0:
+            self.F |= Flags.Z
+    
+    def op_CB_11(self):
+        # RL C
+        high_bit = (self.C & 0x80) >> 7
+        c_flag = (self.F & Flags.C) / Flags.C
+        self.C = ((self.C << 1) & 0xFF) | c_flag
+        self.F = high_bit * flags.C
+        if self.C == 0:
+            self.F |= Flags.Z
+    
+    def op_CB_12(self):
+        # RL D
+        high_bit = (self.D & 0x80) >> 7
+        c_flag = (self.F & Flags.C) / Flags.C
+        self.D = ((self.D << 1) & 0xFF) | c_flag
+        self.F = high_bit * flags.C
+        if self.D == 0:
+            self.F |= Flags.Z
+    
+    def op_CB_13(self):
+        # RL E
+        high_bit = (self.E & 0x80) >> 7
+        c_flag = (self.F & Flags.C) / Flags.C
+        self.E = ((self.E << 1) & 0xFF) | c_flag
+        self.F = high_bit * flags.C
+        if self.E == 0:
+            self.F |= Flags.Z
+    
+    def op_CB_14(self):
+        # RL H
+        high_bit = (self.H & 0x80) >> 7
+        c_flag = (self.F & Flags.C) / Flags.C
+        self.H = ((self.H << 1) & 0xFF) | c_flag
+        self.F = high_bit * flags.C
+        if self.H == 0:
+            self.F |= Flags.Z
+    
+    def op_CB_15(self):
+        # RL L
+        high_bit = (self.L & 0x80) >> 7
+        c_flag = (self.F & Flags.C) / Flags.C
+        self.L = ((self.L << 1) & 0xFF) | c_flag
+        self.F = high_bit * flags.C
+        if self.L == 0:
+            self.F |= Flags.Z
+    
+    def op_CB_16(self):
+        # RL (HL)
+        data = self.ram.read((self.H << 8) | self.L)
+        high_bit = (data & 0x80) >> 7
+        c_flag = (self.F & Flags.C) / Flags.C
+        data = ((data << 1) & 0xFF) | c_flag
+        self.F = high_bit * flags.C
+        if data == 0:
+            self.F |= Flags.Z
+        self.ram.write((self.H << 8) | self.L, data)
+    
+    def op_CB_17(self):
+        # RL A
+        high_bit = (self.A & 0x80) >> 7
+        c_flag = (self.F & Flags.C) / Flags.C
+        self.A = ((self.A << 1) & 0xFF) | c_flag
+        self.F = high_bit * Flags.C
+        if self.A == 0:
+            self.F |= Flags.Z
+    
+    def op_CB_18(self):
+        # RR B
+        low_bit = self.B & 1
+        c_flag = (self.F & Flags.C) / Flags.C
+        self.B = (self.B >> 1) | (c_flag << 7)
+        self.F = low_bit * Flags.C
+        if self.B == 0:
+            self.F |= Flags.Z
+    
+    def op_CB_19(self):
+        # RR C
+        low_bit = self.C & 1
+        c_flag = (self.F & Flags.C) / Flags.C
+        self.C = (self.C >> 1) | (c_flag << 7)
+        self.F = low_bit * Flags.C
+        if self.C == 0:
+            self.F |= Flags.Z
+    
+    def op_CB_1A(self):
+        # RR D
+        low_bit = self.D & 1
+        c_flag = (self.F & Flags.C) / Flags.C
+        self.D = (self.D >> 1) | (c_flag << 7)
+        self.F = low_bit * Flags.C
+        if self.D == 0:
+            self.F |= Flags.Z
+    
+    def op_CB_1B(self):
+        # RR E
+        low_bit = self.E & 1
+        c_flag = (self.F & Flags.C) / Flags.C
+        self.E = (self.E >> 1) | (c_flag << 7)
+        self.F = low_bit * Flags.C
+        if self.E == 0:
+            self.F |= Flags.Z
+    
+    def op_CB_1C(self):
+        # RR H
+        low_bit = self.H & 1
+        c_flag = (self.F & Flags.C) / Flags.C
+        self.H = (self.H >> 1) | (c_flag << 7)
+        self.F = low_bit * Flags.C
+        if self.H == 0:
+            self.F |= Flags.Z
+    
+    def op_CB_1D(self):
+        # RR L
+        low_bit = self.L & 1
+        c_flag = (self.F & Flags.C) / Flags.C
+        self.L = (self.L >> 1) | (c_flag << 7)
+        self.F = low_bit * Flags.C
+        if self.L == 0:
+            self.F |= Flags.Z
+
+    def op_CB_1E(self):
+        # RR (HL)
+        data = self.ram.read((self.H << 8) | self.L)
+        low_bit = data & 1
+        c_flag = (self.F & Flags.C) / Flags.C
+        data = (data >> 1) | (c_flag << 7)
+        self.F = low_bit * Flags.C
+        if data == 0:
+            self.F |= Flags.Z
+        self.ram.write((self.H << 8) | self.L, data)
+    
+    def op_CB_1F(self):
+        # RR A
+        low_bit = self.A & 1
+        c_flag = (self.F & Flags.C) / Flags.C
+        self.A = (self.A >> 1) | (c_flag << 7)
+        self.F = low_bit * Flags.C
+        if self.A == 0:
+            self.F |= Flags.Z
+    
+    def op_CB_20(self):
+        # SLA B
+        high_bit = (self.B & 0x80) >> 7
+        self.B = (self.B << 1) & 0xFF
+        self.F = high_bit * Flags.C
+        if self.B == 0:
+            self.F |= Flags.Z
+    
+    def op_CB_21(self):
+        # SLA C
+        high_bit = (self.C & 0x80) >> 7
+        self.C = (self.C << 1) & 0xFF
+        self.F = high_bit * Flags.C
+        if self.C == 0:
+            self.F |= Flags.Z
+    
+    def op_CB_22(self):
+        # SLA D
+        high_bit = (self.D & 0x80) >> 7
+        self.D = (self.D << 1) & 0xFF
+        self.F = high_bit * Flags.C
+        if self.D == 0:
+            self.F |= Flags.Z
+    
+    def op_CB_23(self):
+        # SLA E
+        high_bit = (self.E & 0x80) >> 7
+        self.E = (self.E << 1) & 0xFF
+        self.F = high_bit * Flags.C
+        if self.E == 0:
+            self.F |= Flags.Z
+    
+    def op_CB_24(self):
+        # SLA H
+        high_bit = (self.H & 0x80) >> 7
+        self.H = (self.H << 1) & 0xFF
+        self.F = high_bit * Flags.C
+        if self.H == 0:
+            self.F |= Flags.Z
+    
+    def op_CB_25(self):
+        # SLA L
+        high_bit = (self.L & 0x80) >> 7
+        self.L = (self.L << 1) & 0xFF
+        self.F = high_bit * Flags.C
+        if self.L == 0:
+            self.F |= Flags.Z
+
+    def op_CB_26(self):
+        # SLA (HL)
+        data = self.ram.read((self.H << 8) | self.L)
+        high_bit = (data & 0x80) >> 7
+        data = (data << 1) & 0xFF
+        self.F = high_bit * Flags.C
+        if data == 0:
+            self.F |= Flags.Z
+        self.ram.write((self.H << 8) | self.L, data)
+    
+    def op_CB_27(self):
+        # SLA A
+        high_bit = (self.A & 0x80) >> 7
+        self.A = (self.A << 1) & 0xFF
+        self.F = high_bit * Flags.C
+        if self.A == 0:
+            self.F |= Flags.Z
+
+    def op_CB_28(self):
+        # SRA B
+        low_bit = self.B & 1
+        self.B = (self.B & 0x80) | (self.B >> 1)
+        self.F = low_bit * Flags.C
+        if self.B == 0:
+            self.F |= Flags.Z
+
+    def op_CB_29(self):
+        # SRA C
+        low_bit = self.C & 1
+        self.C = (self.C & 0x80) | (self.C >> 1)
+        self.F = low_bit * Flags.C
+        if self.C == 0:
+            self.F |= Flags.Z
+
+    def op_CB_2A(self):
+        # SRA D
+        low_bit = self.D & 1
+        self.D = (self.D & 0x80) | (self.D >> 1)
+        self.F = low_bit * Flags.C
+        if self.D == 0:
+            self.F |= Flags.Z
+
+    def op_CB_2B(self):
+        # SRA E
+        low_bit = self.E & 1
+        self.E = (self.E & 0x80) | (self.E >> 1)
+        self.F = low_bit * Flags.C
+        if self.E == 0:
+            self.F |= Flags.Z
+    
+    def op_CB_2C(self):
+        # SRA H
+        low_bit = self.H & 1
+        self.H = (self.H & 0x80) | (self.H >> 1)
+        self.F = low_bit * Flags.C
+        if self.H == 0:
+            self.F |= Flags.Z
+    
+    def op_CB_2D(self):
+        # SRA L
+        low_bit = self.L & 1
+        self.L = (self.L & 0x80) | (self.L >> 1)
+        self.F = low_bit * Flags.C
+        if self.L == 0:
+            self.F |= Flags.Z
+    
+    def op_CB_2E(self):
+        # SRA (HL)
+        data = self.ram.read((self.H << 8) | self.L)
+        low_bit = data & 1
+        self.L = (data & 0x80) | (data >> 1)
+        self.F = low_bit * Flags.C
+        if data == 0:
+            self.F |= Flags.Z
+        self.ram.write((self.H << 8) | self.L, data)
+    
+    def op_CB_2F(self):
+        # SRA A
+        low_bit = self.A & 1
+        self.A = (self.A & 0x80) | (self.A >> 1)
+        self.F = low_bit * Flags.C
+        if self.A == 0:
+            self.F |= Flags.Z
+
+    def op_CB_30(self):
+        # SWAP B
+        self.B = (self.B >> 4) | ((self.B & 0xF) << 4)
+        if self.B == 0:
+            self.F |= Flags.Z
+    
+    def op_CB_31(self):
+        # SWAP C
+        self.C = (self.C >> 4) | ((self.C & 0xF) << 4)
+        if self.C == 0:
+            self.F |= Flags.Z
+    
+    def op_CB_32(self):
+        # SWAP D
+        self.D = (self.D >> 4) | ((self.D & 0xF) << 4)
+        if self.D == 0:
+            self.F |= Flags.Z
+    
+    def op_CB_33(self):
+        # SWAP E
+        self.E = (self.E >> 4) | ((self.E & 0xF) << 4)
+        if self.E == 0:
+            self.F |= Flags.Z
+    
+    def op_CB_34(self):
+        # SWAP H
+        self.H = (self.H >> 4) | ((self.H & 0xF) << 4)
+        if self.H == 0:
+            self.F |= Flags.Z
+    
+    def op_CB_35(self):
+        # SWAP L
+        self.L = (self.L >> 4) | ((self.L & 0xF) << 4)
+        if self.L == 0:
+            self.F |= Flags.Z
+    
+    def op_CB_36(self):
+        # SWAP (HL)
+        data = self.ram.read((self.H << 8) | self.L)
+        data = (data >> 4) | ((data & 0xF) << 4)
+        if data == 0:
+            self.F |= Flags.Z
+        self.ram.write((self.H << 8) | self.L, data)
+    
+    def op_CB_37(self):
+        # SWAP A
+        self.A = (self.A >> 4) | ((self.A & 0xF) << 4)
+        if self.A == 0:
+            self.F |= Flags.Z
+    
+    def op_CB_38(self):
+        # SRL B
+        low_bit = self.B & 1
+        self.B = self.B >> 1
+        self.F = low_bit * Flags.C
+        if self.B == 0:
+            self.F |= Flags.Z
+    
+    def op_CB_39(self):
+        # SRL C
+        low_bit = self.C & 1
+        self.C = self.C >> 1
+        self.F = low_bit * Flags.C
+        if self.C == 0:
+            self.F |= Flags.Z
+    
+    def op_CB_3A(self):
+        # SRL D
+        low_bit = self.D & 1
+        self.D = self.D >> 1
+        self.F = low_bit * Flags.C
+        if self.D == 0:
+            self.F |= Flags.Z
+    
+    def op_CB_3B(self):
+        # SRL E
+        low_bit = self.E & 1
+        self.E = self.E >> 1
+        self.F = low_bit * Flags.C
+        if self.E == 0:
+            self.F |= Flags.Z
+    
+    def op_CB_3C(self):
+        # SRL H
+        low_bit = self.H & 1
+        self.H = self.H >> 1
+        self.F = low_bit * Flags.C
+        if self.H == 0:
+            self.F |= Flags.Z
+    
+    def op_CB_3D(self):
+        # SRL L
+        low_bit = self.L & 1
+        self.L = self.L >> 1
+        self.F = low_bit * Flags.C
+        if self.L == 0:
+            self.F |= Flags.Z
+    
+    def op_CB_3E(self):
+        # SRL (HL)
+        data = self.ram.read((self.H << 8) | self.L)
+        low_bit = data & 1
+        data = data >> 1
+        self.F = low_bit * Flags.C
+        if data == 0:
+            self.F |= Flags.Z
+        self.ram.write((self.H << 8) | self.L, data)
+    
+    def op_CB_3F(self):
+        # SRL A
+        low_bit = self.A & 1
+        self.A = self.A >> 1
+        self.F = low_bit * Flags.C
+        if self.A == 0:
+            self.F |= Flags.Z
+    
+    def op_CB_40(self):
+        # BIT 0, B
+        self.F &= Flags.C
+        self.F |= Flags.H
+        if (self.B & 0x01) == 0:
+            self.F |= Flags.Z
+    
+    def op_CB_41(self):
+        # BIT 0, C
+        self.F &= Flags.C
+        self.F |= Flags.H
+        if (self.C & 0x01) == 0:
+            self.F |= Flags.Z
+    
+    def op_CB_42(self):
+        # BIT 0, D
+        self.F &= Flags.C
+        self.F |= Flags.H
+        if (self.D & 0x01) == 0:
+            self.F |= Flags.Z
+    
+    def op_CB_43(self):
+        # BIT 0, E
+        self.F &= Flags.C
+        self.F |= Flags.H
+        if (self.E & 0x01) == 0:
+            self.F |= Flags.Z
+    
+    def op_CB_44(self):
+        # BIT 0, H
+        self.F &= Flags.C
+        self.F |= Flags.H
+        if (self.H & 0x01) == 0:
+            self.F |= Flags.Z
+    
+    def op_CB_45(self):
+        # BIT 0, L
+        self.F &= Flags.C
+        self.F |= Flags.H
+        if (self.L & 0x01) == 0:
+            self.F |= Flags.Z
+    
+    def op_CB_46(self):
+        # BIT 0, (HL)
+        self.F &= Flags.C
+        self.F |= Flags.H
+        data = self.ram.read((self.H << 8) | self.L)
+        if (data & 0x01) == 0:
+            self.F |= Flags.Z
+    
+    def op_CB_47(self):
+        # BIT 0, A
+        self.F &= Flags.C
+        self.F |= Flags.H
+        if (self.A & 0x01) == 0:
+            self.F |= Flags.Z
+    
+    def op_CB_48(self):
+        # BIT 1, B
+        self.F &= Flags.C
+        self.F |= Flags.H
+        if (self.B & 0x02) == 0:
+            self.F |= Flags.Z
+    
+    def op_CB_49(self):
+        # BIT 1, C
+        self.F &= Flags.C
+        self.F |= Flags.H
+        if (self.C & 0x02) == 0:
+            self.F |= Flags.Z
+    
+    def op_CB_4A(self):
+        # BIT 1, D
+        self.F &= Flags.C
+        self.F |= Flags.H
+        if (self.D & 0x02) == 0:
+            self.F |= Flags.Z
+    
+    def op_CB_4B(self):
+        # BIT 1, E
+        self.F &= Flags.C
+        self.F |= Flags.H
+        if (self.E & 0x02) == 0:
+            self.F |= Flags.Z
+    
+    def op_CB_4C(self):
+        # BIT 1, H
+        self.F &= Flags.C
+        self.F |= Flags.H
+        if (self.H & 0x02) == 0:
+            self.F |= Flags.Z
+    
+    def op_CB_4D(self):
+        # BIT 1, L
+        self.F &= Flags.C
+        self.F |= Flags.H
+        if (self.L & 0x02) == 0:
+            self.F |= Flags.Z
+    
+    def op_CB_4E(self):
+        # BIT 1, (HL)
+        self.F &= Flags.C
+        self.F |= Flags.H
+        data = self.ram.read((self.H << 8) | self.L)
+        if (data & 0x02) == 0:
+            self.F |= Flags.Z
+    
+    def op_CB_4F(self):
+        # BIT 1, A
+        self.F &= Flags.C
+        self.F |= Flags.H
+        if (self.A & 0x02) == 0:
+            self.F |= Flags.Z
+    
+    def op_CB_50(self):
+        # BIT 2, B
+        self.F &= Flags.C
+        self.F |= Flags.H
+        if (self.B & 0x04) == 0:
+            self.F |= Flags.Z
+    
+    def op_CB_51(self):
+        # BIT 2, C
+        self.F &= Flags.C
+        self.F |= Flags.H
+        if (self.C & 0x04) == 0:
+            self.F |= Flags.Z
+    
+    def op_CB_52(self):
+        # BIT 2, D
+        self.F &= Flags.C
+        self.F |= Flags.H
+        if (self.D & 0x04) == 0:
+            self.F |= Flags.Z
+    
+    def op_CB_53(self):
+        # BIT 2, E
+        self.F &= Flags.C
+        self.F |= Flags.H
+        if (self.E & 0x04) == 0:
+            self.F |= Flags.Z
+    
+    def op_CB_54(self):
+        # BIT 2, H
+        self.F &= Flags.C
+        self.F |= Flags.H
+        if (self.H & 0x04) == 0:
+            self.F |= Flags.Z
+    
+    def op_CB_55(self):
+        # BIT 2, L
+        self.F &= Flags.C
+        self.F |= Flags.H
+        if (self.L & 0x04) == 0:
+            self.F |= Flags.Z
+    
+    def op_CB_56(self):
+        # BIT 2, (HL)
+        self.F &= Flags.C
+        self.F |= Flags.H
+        data = self.ram.read((self.H << 8) | self.L)
+        if (data & 0x04) == 0:
+            self.F |= Flags.Z
+    
+    def op_CB_57(self):
+        # BIT 2, A
+        self.F &= Flags.C
+        self.F |= Flags.H
+        if (self.A & 0x04) == 0:
+            self.F |= Flags.Z
+    
+    def op_CB_58(self):
+        # BIT 3, B
+        self.F &= Flags.C
+        self.F |= Flags.H
+        if (self.B & 0x08) == 0:
+            self.F |= Flags.Z
+    
+    def op_CB_59(self):
+        # BIT 3, C
+        self.F &= Flags.C
+        self.F |= Flags.H
+        if (self.C & 0x08) == 0:
+            self.F |= Flags.Z
+    
+    def op_CB_5A(self):
+        # BIT 3, D
+        self.F &= Flags.C
+        self.F |= Flags.H
+        if (self.D & 0x08) == 0:
+            self.F |= Flags.Z
+    
+    def op_CB_5B(self):
+        # BIT 3, E
+        self.F &= Flags.C
+        self.F |= Flags.H
+        if (self.E & 0x08) == 0:
+            self.F |= Flags.Z
+    
+    def op_CB_5C(self):
+        # BIT 3, H
+        self.F &= Flags.C
+        self.F |= Flags.H
+        if (self.H & 0x08) == 0:
+            self.F |= Flags.Z
+    
+    def op_CB_5D(self):
+        # BIT 3, L
+        self.F &= Flags.C
+        self.F |= Flags.H
+        if (self.L & 0x08) == 0:
+            self.F |= Flags.Z
+    
+    def op_CB_5E(self):
+        # BIT 3, (HL)
+        self.F &= Flags.C
+        self.F |= Flags.H
+        data = self.ram.read((self.H << 8) | self.L)
+        if (data & 0x08) == 0:
+            self.F |= Flags.Z
+    
+    def op_CB_5F(self):
+        # BIT 3, A
+        self.F &= Flags.C
+        self.F |= Flags.H
+        if (self.A & 0x08) == 0:
+            self.F |= Flags.Z
+    
+    def op_CB_60(self):
+        # BIT 4, B
+        self.F &= Flags.C
+        self.F |= Flags.H
+        if (self.B & 0x10) == 0:
+            self.F |= Flags.Z
+    
+    def op_CB_61(self):
+        # BIT 4, C
+        self.F &= Flags.C
+        self.F |= Flags.H
+        if (self.C & 0x10) == 0:
+            self.F |= Flags.Z
+    
+    def op_CB_62(self):
+        # BIT 4, D
+        self.F &= Flags.C
+        self.F |= Flags.H
+        if (self.D & 0x10) == 0:
+            self.F |= Flags.Z
+    
+    def op_CB_63(self):
+        # BIT 4, E
+        self.F &= Flags.C
+        self.F |= Flags.H
+        if (self.E & 0x10) == 0:
+            self.F |= Flags.Z
+    
+    def op_CB_64(self):
+        # BIT 4, H
+        self.F &= Flags.C
+        self.F |= Flags.H
+        if (self.H & 0x10) == 0:
+            self.F |= Flags.Z
+    
+    def op_CB_65(self):
+        # BIT 4, L
+        self.F &= Flags.C
+        self.F |= Flags.H
+        if (self.L & 0x10) == 0:
+            self.F |= Flags.Z
+    
+    def op_CB_66(self):
+        # BIT 4, (HL)
+        self.F &= Flags.C
+        self.F |= Flags.H
+        data = self.ram.read((self.H << 8) | self.L)
+        if (data & 0x10) == 0:
+            self.F |= Flags.Z
+    
+    def op_CB_67(self):
+        # BIT 4, A
+        self.F &= Flags.C
+        self.F |= Flags.H
+        if (self.A & 0x10) == 0:
+            self.F |= Flags.Z
+    
+    def op_CB_68(self):
+        # BIT 5, B
+        self.F &= Flags.C
+        self.F |= Flags.H
+        if (self.B & 0x20) == 0:
+            self.F |= Flags.Z
+    
+    def op_CB_69(self):
+        # BIT 5, C
+        self.F &= Flags.C
+        self.F |= Flags.H
+        if (self.C & 0x20) == 0:
+            self.F |= Flags.Z
+    
+    def op_CB_6A(self):
+        # BIT 5, D
+        self.F &= Flags.C
+        self.F |= Flags.H
+        if (self.D & 0x20) == 0:
+            self.F |= Flags.Z
+    
+    def op_CB_6B(self):
+        # BIT 5, E
+        self.F &= Flags.C
+        self.F |= Flags.H
+        if (self.E & 0x20) == 0:
+            self.F |= Flags.Z
+    
+    def op_CB_6C(self):
+        # BIT 5, H
+        self.F &= Flags.C
+        self.F |= Flags.H
+        if (self.H & 0x20) == 0:
+            self.F |= Flags.Z
+    
+    def op_CB_6D(self):
+        # BIT 5, L
+        self.F &= Flags.C
+        self.F |= Flags.H
+        if (self.L & 0x20) == 0:
+            self.F |= Flags.Z
+    
+    def op_CB_6E(self):
+        # BIT 5, (HL)
+        self.F &= Flags.C
+        self.F |= Flags.H
+        data = self.ram.read((self.H << 8) | self.L)
+        if (data & 0x20) == 0:
+            self.F |= Flags.Z
+    
+    def op_CB_6F(self):
+        # BIT 5, A
+        self.F &= Flags.C
+        self.F |= Flags.H
+        if (self.A & 0x20) == 0:
+            self.F |= Flags.Z
+    
+    def op_CB_70(self):
+        # BIT 6, B
+        self.F &= Flags.C
+        self.F |= Flags.H
+        if (self.B & 0x40) == 0:
+            self.F |= Flags.Z
+    
+    def op_CB_71(self):
+        # BIT 6, C
+        self.F &= Flags.C
+        self.F |= Flags.H
+        if (self.C & 0x40) == 0:
+            self.F |= Flags.Z
+    
+    def op_CB_72(self):
+        # BIT 6, D
+        self.F &= Flags.C
+        self.F |= Flags.H
+        if (self.D & 0x40) == 0:
+            self.F |= Flags.Z
+    
+    def op_CB_73(self):
+        # BIT 6, E
+        self.F &= Flags.C
+        self.F |= Flags.H
+        if (self.E & 0x40) == 0:
+            self.F |= Flags.Z
+    
+    def op_CB_74(self):
+        # BIT 6, H
+        self.F &= Flags.C
+        self.F |= Flags.H
+        if (self.H & 0x40) == 0:
+            self.F |= Flags.Z
+    
+    def op_CB_75(self):
+        # BIT 6, L
+        self.F &= Flags.C
+        self.F |= Flags.H
+        if (self.L & 0x40) == 0:
+            self.F |= Flags.Z
+    
+    def op_CB_76(self):
+        # BIT 6, (HL)
+        self.F &= Flags.C
+        self.F |= Flags.H
+        data = self.ram.read((self.H << 8) | self.L)
+        if (data & 0x40) == 0:
+            self.F |= Flags.Z
+    
+    def op_CB_77(self):
+        # BIT 6, A
+        self.F &= Flags.C
+        self.F |= Flags.H
+        if (self.A & 0x40) == 0:
+            self.F |= Flags.Z
+    
+    def op_CB_78(self):
+        # BIT 7, B
+        self.F &= Flags.C
+        self.F |= Flags.H
+        if (self.B & 0x80) == 0:
+            self.F |= Flags.Z
+    
+    def op_CB_79(self):
+        # BIT 7, C
+        self.F &= Flags.C
+        self.F |= Flags.H
+        if (self.C & 0x80) == 0:
+            self.F |= Flags.Z
+    
+    def op_CB_7A(self):
+        # BIT 7, D
+        self.F &= Flags.C
+        self.F |= Flags.H
+        if (self.D & 0x80) == 0:
+            self.F |= Flags.Z
+    
+    def op_CB_7B(self):
+        # BIT 7, E
+        self.F &= Flags.C
+        self.F |= Flags.H
+        if (self.E & 0x80) == 0:
+            self.F |= Flags.Z
+    
+    def op_CB_7C(self):
+        # BIT 7, H
+        self.F &= Flags.C
+        self.F |= Flags.H
+        if (self.H & 0x80) == 0:
+            self.F |= Flags.Z
+    
+    def op_CB_7D(self):
+        # BIT 7, L
+        self.F &= Flags.C
+        self.F |= Flags.H
+        if (self.L & 0x80) == 0:
+            self.F |= Flags.Z
+    
+    def op_CB_7E(self):
+        # BIT 7, (HL)
+        self.F &= Flags.C
+        self.F |= Flags.H
+        data = self.ram.read((self.H << 8) | self.L)
+        if (data & 0x80) == 0:
+            self.F |= Flags.Z
+    
+    def op_CB_7F(self):
+        # BIT 7, A
+        self.F &= Flags.C
+        self.F |= Flags.H
+        if (self.A & 0x80) == 0:
+            self.F |= Flags.Z
+    
+    def op_CB_80(self):
+        # RES 0, B
+        self.B &= ~0x01
+    
+    def op_CB_81(self):
+        # RES 0, C
+        self.C &= ~0x01
+    
+    def op_CB_82(self):
+        # RES 0, D
+        self.D &= ~0x01
+    
+    def op_CB_83(self):
+        # RES 0, E
+        self.E &= ~0x01
+    
+    def op_CB_84(self):
+        # RES 0, H
+        self.H &= ~0x01
+    
+    def op_CB_85(self):
+        # RES 0, L
+        self.L &= ~0x01
+    
+    def op_CB_86(self):
+        # RES 0, (HL)
+        data = self.ram.read((self.H << 8) | self.L)
+        data &= ~0x01
+        self.ram.write((self.H << 8) | self.L, data)
+    
+    def op_CB_87(self):
+        # RES 0, A
+        self.A &= ~0x01
+    
+    def op_CB_88(self):
+        # RES 1, B
+        self.B &= ~0x02
+    
+    def op_CB_89(self):
+        # RES 1, C
+        self.C &= ~0x02
+    
+    def op_CB_8A(self):
+        # RES 1, D
+        self.D &= ~0x02
+    
+    def op_CB_8B(self):
+        # RES 1, E
+        self.E &= ~0x02
+    
+    def op_CB_8C(self):
+        # RES 1, H
+        self.H &= ~0x02
+    
+    def op_CB_8D(self):
+        # RES 1, L
+        self.L &= ~0x02
+    
+    def op_CB_8E(self):
+        # RES 1, (HL)
+        data = self.ram.read((self.H << 8) | self.L)
+        data &= ~0x02
+        self.ram.write((self.H << 8) | self.L, data)
+    
+    def op_CB_8F(self):
+        # RES 1, A
+        self.A &= ~0x02
+    
+    def op_CB_90(self):
+        # RES 2, B
+        self.B &= ~0x04
+    
+    def op_CB_91(self):
+        # RES 2, C
+        self.C &= ~0x04
+    
+    def op_CB_92(self):
+        # RES 2, D
+        self.D &= ~0x04
+    
+    def op_CB_93(self):
+        # RES 2, E
+        self.E &= ~0x04
+    
+    def op_CB_94(self):
+        # RES 2, H
+        self.H &= ~0x04
+    
+    def op_CB_95(self):
+        # RES 2, L
+        self.L &= ~0x04
+    
+    def op_CB_96(self):
+        # RES 2, (HL)
+        data = self.ram.read((self.H << 8) | self.L)
+        data &= ~0x04
+        self.ram.write((self.H << 8) | self.L, data)
+    
+    def op_CB_97(self):
+        # RES 2, A
+        self.A &= ~0x04
+    
+    def op_CB_98(self):
+        # RES 3, B
+        self.B &= ~0x08
+    
+    def op_CB_99(self):
+        # RES 3, C
+        self.C &= ~0x08
+    
+    def op_CB_9A(self):
+        # RES 3, D
+        self.D &= ~0x08
+    
+    def op_CB_9B(self):
+        # RES 3, E
+        self.E &= ~0x08
+    
+    def op_CB_9C(self):
+        # RES 3, H
+        self.H &= ~0x08
+    
+    def op_CB_9D(self):
+        # RES 3, L
+        self.L &= ~0x08
+    
+    def op_CB_9E(self):
+        # RES 3, (HL)
+        data = self.ram.read((self.H << 8) | self.L)
+        data &= ~0x08
+        self.ram.write((self.H << 8) | self.L, data)
+    
+    def op_CB_9F(self):
+        # RES 3, A
+        self.A &= ~0x08
+    
+    def op_CB_A0(self):
+        # RES 4, B
+        self.B &= ~0x10
+    
+    def op_CB_A1(self):
+        # RES 4, C
+        self.C &= ~0x10
+    
+    def op_CB_A2(self):
+        # RES 4, D
+        self.D &= ~0x10
+    
+    def op_CB_A3(self):
+        # RES 4, E
+        self.E &= ~0x10
+    
+    def op_CB_A4(self):
+        # RES 4, H
+        self.H &= ~0x10
+    
+    def op_CB_A5(self):
+        # RES 4, L
+        self.L &= ~0x10
+    
+    def op_CB_A6(self):
+        # RES 4, (HL)
+        data = self.ram.read((self.H << 8) | self.L)
+        data &= ~0x10
+        self.ram.write((self.H << 8) | self.L, data)
+    
+    def op_CB_A7(self):
+        # RES 4, A
+        self.A &= ~0x10
+    
+    def op_CB_A8(self):
+        # RES 5, B
+        self.B &= ~0x20
+    
+    def op_CB_A9(self):
+        # RES 5, C
+        self.C &= ~0x20
+    
+    def op_CB_AA(self):
+        # RES 5, D
+        self.D &= ~0x20
+    
+    def op_CB_AB(self):
+        # RES 5, E
+        self.E &= ~0x20
+    
+    def op_CB_AC(self):
+        # RES 5, H
+        self.H &= ~0x20
+    
+    def op_CB_AD(self):
+        # RES 5, L
+        self.L &= ~0x20
+    
+    def op_CB_AE(self):
+        # RES 5, (HL)
+        data = self.ram.read((self.H << 8) | self.L)
+        data &= ~0x20
+        self.ram.write((self.H << 8) | self.L, data)
+    
+    def op_CB_AF(self):
+        # RES 5, A
+        self.A &= ~0x20
+    
+    def op_CB_B0(self):
+        # RES 6, B
+        self.B &= ~0x40
+    
+    def op_CB_B1(self):
+        # RES 6, C
+        self.C &= ~0x40
+    
+    def op_CB_B2(self):
+        # RES 6, D
+        self.D &= ~0x40
+    
+    def op_CB_B3(self):
+        # RES 6, E
+        self.E &= ~0x40
+    
+    def op_CB_B4(self):
+        # RES 6, H
+        self.H &= ~0x40
+    
+    def op_CB_B5(self):
+        # RES 6, L
+        self.L &= ~0x40
+    
+    def op_CB_B6(self):
+        # RES 6, (HL)
+        data = self.ram.read((self.H << 8) | self.L)
+        data &= ~0x40
+        self.ram.write((self.H << 8) | self.L, data)
+    
+    def op_CB_B7(self):
+        # RES 6, A
+        self.A &= ~0x40
+    
+    def op_CB_B8(self):
+        # RES 7, B
+        self.B &= ~0x80
+    
+    def op_CB_B9(self):
+        # RES 7, C
+        self.C &= ~0x80
+    
+    def op_CB_BA(self):
+        # RES 7, D
+        self.D &= ~0x80
+    
+    def op_CB_BB(self):
+        # RES 7, E
+        self.E &= ~0x80
+    
+    def op_CB_BC(self):
+        # RES 7, H
+        self.H &= ~0x80
+    
+    def op_CB_BD(self):
+        # RES 7, L
+        self.L &= ~0x80
+    
+    def op_CB_BE(self):
+        # RES 7, (HL)
+        data = self.ram.read((self.H << 8) | self.L)
+        data &= ~0x80
+        self.ram.write((self.H << 8) | self.L, data)
+    
+    def op_CB_BF(self):
+        # RES 7, A
+        self.A &= ~0x80
+    
+    def op_CB_C0(self):
+        # SET 0, B
+        self.B |= 0x01
+    
+    def op_CB_C1(self):
+        # SET 0, C
+        self.C |= 0x01
+    
+    def op_CB_C2(self):
+        # SET 0, D
+        self.D |= 0x01
+    
+    def op_CB_C3(self):
+        # SET 0, E
+        self.E |= 0x01
+    
+    def op_CB_C4(self):
+        # SET 0, H
+        self.H |= 0x01
+    
+    def op_CB_C5(self):
+        # SET 0, L
+        self.L |= 0x01
+    
+    def op_CB_C6(self):
+        # SET 0, (HL)
+        data = self.ram.read((self.H << 8) | self.L)
+        data |= 0x01
+        self.ram.write((self.H << 8) | self.L, data)
+    
+    def op_CB_C7(self):
+        # SET 0, A
+        self.A |= 0x01
+    
+    def op_CB_C8(self):
+        # SET 1, B
+        self.B |= 0x02
+    
+    def op_CB_C9(self):
+        # SET 1, C
+        self.C |= 0x02
+    
+    def op_CB_CA(self):
+        # SET 1, D
+        self.D |= 0x02
+    
+    def op_CB_CB(self):
+        # SET 1, E
+        self.E |= 0x02
+    
+    def op_CB_CC(self):
+        # SET 1, H
+        self.H |= 0x02
+    
+    def op_CB_CD(self):
+        # SET 1, L
+        self.L |= 0x02
+    
+    def op_CB_CE(self):
+        # SET 1, (HL)
+        data = self.ram.read((self.H << 8) | self.L)
+        data |= 0x02
+        self.ram.write((self.H << 8) | self.L, data)
+    
+    def op_CB_CF(self):
+        # SET 1, A
+        self.A |= 0x02
+    
+    def op_CB_D0(self):
+        # SET 2, B
+        self.B |= 0x04
+    
+    def op_CB_D1(self):
+        # SET 2, C
+        self.C |= 0x04
+    
+    def op_CB_D2(self):
+        # SET 2, D
+        self.D |= 0x04
+    
+    def op_CB_D3(self):
+        # SET 2, E
+        self.E |= 0x04
+    
+    def op_CB_D4(self):
+        # SET 2, H
+        self.H |= 0x04
+    
+    def op_CB_D5(self):
+        # SET 2, L
+        self.L |= 0x04
+    
+    def op_CB_D6(self):
+        # SET 2, (HL)
+        data = self.ram.read((self.H << 8) | self.L)
+        data |= 0x04
+        self.ram.write((self.H << 8) | self.L, data)
+    
+    def op_CB_D7(self):
+        # SET 2, A
+        self.A |= 0x04
+    
+    def op_CB_D8(self):
+        # SET 3, B
+        self.B |= 0x08
+    
+    def op_CB_D9(self):
+        # SET 3, C
+        self.C |= 0x08
+    
+    def op_CB_DA(self):
+        # SET 3, D
+        self.D |= 0x08
+    
+    def op_CB_DB(self):
+        # SET 3, E
+        self.E |= 0x08
+    
+    def op_CB_DC(self):
+        # SET 3, H
+        self.H |= 0x08
+    
+    def op_CB_DD(self):
+        # SET 3, L
+        self.L |= 0x08
+    
+    def op_CB_DE(self):
+        # SET 3, (HL)
+        data = self.ram.read((self.H << 8) | self.L)
+        data |= 0x08
+        self.ram.write((self.H << 8) | self.L, data)
+    
+    def op_CB_DF(self):
+        # SET 3, A
+        self.A |= 0x08
+    
+    def op_CB_E0(self):
+        # SET 4, B
+        self.B |= 0x10
+    
+    def op_CB_E1(self):
+        # SET 4, C
+        self.C |= 0x10
+    
+    def op_CB_E2(self):
+        # SET 4, D
+        self.D |= 0x10
+    
+    def op_CB_E3(self):
+        # SET 4, E
+        self.E |= 0x10
+    
+    def op_CB_E4(self):
+        # SET 4, H
+        self.H |= 0x10
+    
+    def op_CB_E5(self):
+        # SET 4, L
+        self.L |= 0x10
+    
+    def op_CB_E6(self):
+        # SET 4, (HL)
+        data = self.ram.read((self.H << 8) | self.L)
+        data |= 0x10
+        self.ram.write((self.H << 8) | self.L, data)
+    
+    def op_CB_E7(self):
+        # SET 4, A
+        self.A |= 0x10
+    
+    def op_CB_E8(self):
+        # SET 5, B
+        self.B |= 0x20
+    
+    def op_CB_E9(self):
+        # SET 5, C
+        self.C |= 0x20
+    
+    def op_CB_EA(self):
+        # SET 5, D
+        self.D |= 0x20
+    
+    def op_CB_EB(self):
+        # SET 5, E
+        self.E |= 0x20
+    
+    def op_CB_EC(self):
+        # SET 5, H
+        self.H |= 0x20
+    
+    def op_CB_ED(self):
+        # SET 5, L
+        self.L |= 0x20
+    
+    def op_CB_EE(self):
+        # SET 5, (HL)
+        data = self.ram.read((self.H << 8) | self.L)
+        data |= 0x20
+        self.ram.write((self.H << 8) | self.L, data)
+    
+    def op_CB_EF(self):
+        # SET 5, A
+        self.A |= 0x20
+    
+    def op_CB_F0(self):
+        # SET 6, B
+        self.B |= 0x40
+    
+    def op_CB_F1(self):
+        # SET 6, C
+        self.C |= 0x40
+    
+    def op_CB_F2(self):
+        # SET 6, D
+        self.D |= 0x40
+    
+    def op_CB_F3(self):
+        # SET 6, E
+        self.E |= 0x40
+    
+    def op_CB_F4(self):
+        # SET 6, H
+        self.H |= 0x40
+    
+    def op_CB_F5(self):
+        # SET 6, L
+        self.L |= 0x40
+    
+    def op_CB_F6(self):
+        # SET 6, (HL)
+        data = self.ram.read((self.H << 8) | self.L)
+        data |= 0x40
+        self.ram.write((self.H << 8) | self.L, data)
+    
+    def op_CB_F7(self):
+        # SET 6, A
+        self.A |= 0x40
+    
+    def op_CB_F8(self):
+        # SET 7, B
+        self.B |= 0x80
+    
+    def op_CB_F9(self):
+        # SET 7, C
+        self.C |= 0x80
+    
+    def op_CB_FA(self):
+        # SET 7, D
+        self.D |= 0x80
+    
+    def op_CB_FB(self):
+        # SET 7, E
+        self.E |= 0x80
+    
+    def op_CB_FC(self):
+        # SET 7, H
+        self.H |= 0x80
+    
+    def op_CB_FD(self):
+        # SET 7, L
+        self.L |= 0x80
+    
+    def op_CB_FE(self):
+        # SET 7, (HL)
+        data = self.ram.read((self.H << 8) | self.L)
+        data |= 0x80
+        self.ram.write((self.H << 8) | self.L, data)
+    
+    def op_CB_FF(self):
+        # SET 7, A
+        self.A |= 0x80
 
     def int_vblank(self):
         # Attempt to setup a vblank interrupt
@@ -2782,6 +3767,8 @@ H: %02x   L: %02x   Ints: %s
                 self.ram.write(self.SP+1, self.PC >> 8)
                 # Disable interrupts
                 self.interrupts = False
+                # Unhalt
+                self.halted = False
                 # Jump to 0x40
                 self.PC = 0x40
 
@@ -2797,6 +3784,8 @@ H: %02x   L: %02x   Ints: %s
                 self.ram.write(self.SP+1, self.PC >> 8)
                 # Disable interrupts
                 self.interrupts = False
+                # Unhalt
+                self.halted = False
                 # Jump to 0x48
                 self.PC = 0x48
 
@@ -2812,6 +3801,8 @@ H: %02x   L: %02x   Ints: %s
                 self.ram.write(self.SP+1, self.PC >> 8)
                 # Disable interrupts
                 self.interrupts = False
+                # Unhalt
+                self.halted = False
                 # Jump to 0x50
                 self.PC = 0x50
 
@@ -2827,6 +3818,8 @@ H: %02x   L: %02x   Ints: %s
                 self.ram.write(self.SP+1, self.PC >> 8)
                 # Disable interrupts
                 self.interrupts = False
+                # Unhalt
+                self.halted = False
                 # Jump to 0x58
                 self.PC = 0x58
 
@@ -2842,11 +3835,14 @@ H: %02x   L: %02x   Ints: %s
                 self.ram.write(self.SP+1, self.PC >> 8)
                 # Disable interrupts
                 self.interrupts = False
+                # Unhalt
+                self.halted = False
                 # Jump to 0x60
                 self.PC = 0x60
 
 class gb_ram(object):
     def __init__(self):
+        self.joypad_obj = None # joypad obj for input register
         self.rom = [] # Cartridge ROM
         self.vram = [0x00] * 0x2000 # Video RAM
         self.eram = [0x00] * 0x2000 # External RAM
@@ -2955,6 +3951,12 @@ class gb_ram(object):
             self.zram[p - 0xFF80] = d
         elif p >= 0xFF00:
             self.mmio[p - 0xFF00] = d
+            # Input register
+            if p == 0xFF00 and self.joypad_obj is not None:
+                if d & 0x30 == 0x10:
+                    self.mmio[0] |= self.joypad_obj.P15_mask()
+                elif d & 0x30 == 0x20:
+                    self.mmio[0] |= self.joypad_obj.P14_mask()
         elif p >= 0xFEA0:
             # Nothing here
             return
@@ -3073,7 +4075,6 @@ GPU Mode: %d    Mode Clock: %d    Line: %3d (%02x)
         scx = self.ram.mmio[0x43]
 
         # print "scy: %d, scx: %d" % (scy, scx)
-
         pallette = self.ram.mmio[0x47]
 
         if (flags & GPUFlags.BGMAP) == 0:
@@ -3091,14 +4092,15 @@ GPU Mode: %d    Mode Clock: %d    Line: %3d (%02x)
 
         for pix in range(160):
             tile_index = ((pix + scx) & 0xFF) >> 3
-            tile_bit = ((pix + scx) & 0xFF) & 7
+            tile_bit = 7 - (((pix + scx) & 0xFF) & 7)
 
             tile_no = tiles[tile_index]
 
             # look up the tile
             # Account for different location of tileset 1
-            if (flags & GPUFlags.BGSET) == 0 and tile_no < 0x80:
-                tile_no += 0x100
+            # Out for now bcause not sure about this
+            # if (flags & GPUFlags.BGSET) == GPUFlags.BGSET and tile_no < 0x80:
+            #     tile_no += 0x100
 
             tile_lo = self.ram.vram[tile_no * 0x10 + pix_line * 2]
             tile_hi = self.ram.vram[tile_no * 0x10 + pix_line * 2 + 1]
@@ -3108,3 +4110,38 @@ GPU Mode: %d    Mode Clock: %d    Line: %3d (%02x)
 
             pallette_index = pix_hi * 2 + pix_lo 
             self.pixels[self.line][pix] = (pallette >> (pallette_index * 2)) & 3
+
+class gb_joypad(object):
+    def __init__(self):
+        self.right = False
+        self.left = False
+        self.up = False
+        self.down = False
+        self.A = False
+        self.B = False
+        self.start = False
+        self.select = False
+
+    def P14_mask(self):
+        mask = 0xF
+        if self.right:
+            mask &= ~0x1
+        if self.left:
+            mask &= ~0x2
+        if self.up:
+            mask &= ~0x4
+        if self.down:
+            mask &= ~0x8
+        return mask
+
+    def P15_mask(self):
+        mask = 0xF
+        if self.A:
+            mask &= ~0x1
+        if self.B:
+            mask &= ~0x2
+        if self.select:
+            mask &= ~0x4
+        if self.start:
+            mask &= ~0x8
+        return mask
