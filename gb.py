@@ -2257,9 +2257,9 @@ H: %02x   L: %02x   Ints: %s
         self.F = Flags.N
         if self.A == data:
             self.F |= Flags.Z
-        if (self.A & 0xF) >= (data & 0xF):
+        if (self.A & 0xF) < (data & 0xF):
             self.F |= Flags.H
-        if self.A >= data:
+        if self.A < data:
             self.F |= Flags.C
 
     def op_FF(self):
