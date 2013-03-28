@@ -7,6 +7,7 @@ def main(rom_file):
     game.load_rom(rom_file)
     def advance():
         game.step_frame()
+        #print game.ram.dump()
         disp.update(game.gpu.pixels)
         disp.root.after(1, advance)
     disp.root.after(1, advance)
@@ -14,4 +15,5 @@ def main(rom_file):
 
 if __name__ == "__main__":
     #main("test1/TESTGAME.GB")
+    #main("test2/TESTGAME.GB")
     main("Tetris.gb")

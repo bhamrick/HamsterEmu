@@ -7,6 +7,7 @@ class Gameboy:
         self.ram.joypad_obj = self.joypad
 
     def step_instruction(self):
+        #print self.cpu
         if self.cpu.halted:
             self.cpu.clock += 4
             self.cpu.dt = 4
@@ -46,6 +47,9 @@ class gb_cpu(object):
         self.halted = False
         self.interrupts = False
         self.ram = gb_ram()
+
+        self.timer_div_countdown = 256
+        self.timer_counter_countdown = None
 
         # Debugging info
         self.used_ops = set()
@@ -410,6 +414,42 @@ H: %02x   L: %02x   Ints: %s
         self.clock += op_details[2]
         self.dt = op_details[2]
         self.used_ops.add(op)
+
+        self.update_clock()
+
+    def update_clock(self):
+        # update divider register
+        self.timer_div_countdown -= self.dt
+        if self.timer_div_countdown <= 0:
+            div = self.ram.read(0xFF04)
+            self.ram.write(0xFF04, (div + 1) & 0xFF)
+            self.timer_div_countdown += 256
+
+        # Timer register
+        control = self.ram.read(0xFF07)
+        timer_on = (control & 0x4) >> 2
+        timer_spd = (control & 3)
+        if timer_spd == 0:
+            timer_period = 1024
+        elif timer_spd == 1:
+            timer_period = 16
+        elif timer_spd == 2:
+            timer_period = 64
+        else:
+            timer_period = 256
+        if timer_on:
+            if self.timer_counter_countdown is None:
+                self.timer_counter_countdown = timer_period
+            self.timer_counter_countdown -= self.dt
+            if self.timer_counter_countdown <= 0:
+                self.timer_counter_countdown += timer_period
+                counter = self.ram.read(0xFF05)
+                if counter == 0xFF:
+                    modulo = self.ram.read(0xFF06)
+                    self.ram.write(0xFF05, modulo)
+                    self.int_timer()
+                else:
+                    self.ram.write(0xFF05, counter + 1)
 
     def op_00(self):
         # NOP
@@ -3951,12 +3991,17 @@ class gb_ram(object):
             self.zram[p - 0xFF80] = d
         elif p >= 0xFF00:
             self.mmio[p - 0xFF00] = d
-            # Input register
             if p == 0xFF00 and self.joypad_obj is not None:
+                # Input register
                 if d & 0x30 == 0x10:
                     self.mmio[0] |= self.joypad_obj.P15_mask()
                 elif d & 0x30 == 0x20:
                     self.mmio[0] |= self.joypad_obj.P14_mask()
+            elif p == 0xFF46:
+                # Transfer data from RAM to OAM
+                offset = self.mmio[0x46] * 0x0100
+                for i in range(0xA0):
+                    self.sprite_info[i] = self.read(offset+i)
         elif p >= 0xFEA0:
             # Nothing here
             return
@@ -4112,6 +4157,52 @@ GPU Mode: %d    Mode Clock: %d    Line: %3d (%02x)
 
                 pallette_index = pix_hi * 2 + pix_lo 
                 self.pixels[self.line][pix] = (bg_pallette >> (pallette_index * 2)) & 3
+        if (flags & GPUFlags.SPON) == GPUFlags.SPON:
+            # Draw sprites
+            sprite_mode = flags & GPUFlags.SPSZ
+            for sprite_index in range(40):
+                sprite_off = 0x4 * sprite_index
+                y_pos = self.ram.sprite_info[sprite_off] - 16
+                x_pos = self.ram.sprite_info[sprite_off+1] - 8
+                tile_index = self.ram.sprite_info[sprite_off+2]
+                sprite_flags = self.ram.sprite_info[sprite_off+3]
+
+                if sprite_mode == 0:
+                    # 8x8 mode
+                    above = ((sprite_flags & 0x80) == 0)
+                    y_flip = ((sprite_flags & 0x40) == 0x40)
+                    x_flip = ((sprite_flags & 0x20) == 0x20)
+                    pal_num = ((sprite_flags & 0x10) / 0x10)
+                    if pal_num == 0:
+                        pallette = self.ram.mmio[0x48]
+                    else:
+                        pallette = self.ram.mmio[0x49]
+
+                    if y_pos <= self.line and y_pos > self.line - 8:
+                        if not y_flip:
+                            pix_line = self.line - y_pos
+                        else:
+                            pix_line = 7 - (self.line - y_pos)
+                        for pix in range(max(x_pos, 0), min(x_pos + 8, 159)):
+                            if x_flip:
+                                tile_bit = pix - x_pos
+                            else:
+                                tile_bit = 7 - (pix - x_pos)
+
+                            tile_lo = self.ram.vram[tile_index * 0x10 + pix_line * 2]
+                            tile_hi = self.ram.vram[tile_index * 0x10 + pix_line * 2 + 1]
+
+                            pix_hi = ((tile_hi & (1 << tile_bit)) >> tile_bit)
+                            pix_lo = ((tile_lo & (1 << tile_bit)) >> tile_bit)
+
+                            pallette_index = pix_hi * 2 + pix_lo
+                            color = (pallette >> (pallette_index * 2)) & 3
+                            
+                            if above or self.pixels[self.line][pix] == 0:
+                                self.pixels[self.line][pix] = color
+                else:
+                    # 8x16 mode
+                    pass
 
 class gb_joypad(object):
     def __init__(self):
