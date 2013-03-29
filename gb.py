@@ -743,7 +743,6 @@ H: %02x   L: %02x   Ints: %s
         c_flag = (self.F & Flags.C) / Flags.C
         h_flag = (self.F & Flags.H) / Flags.H
         n_flag = (self.F & Flags.N) / Flags.N
-        print "DAA A: %02x, cflag: %d, h_flag: %d" % (self.A, c_flag, h_flag)
         # Leave N flag alone
         if not n_flag:
             # Last op was an addition
@@ -763,8 +762,6 @@ H: %02x   L: %02x   Ints: %s
         self.A &= 0xFF
         if self.A == 0:
             self.F |= Flags.Z
-        print "Output A: %02x, C: %d" % (self.A, (self.F & Flags.C) / Flags.C)
-        print
 
     def op_28(self, offset):
         # JRZ n
