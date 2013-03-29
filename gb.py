@@ -742,25 +742,29 @@ H: %02x   L: %02x   Ints: %s
         # DAA - adjust Binary Coded Decimal results
         c_flag = (self.F & Flags.C) / Flags.C
         h_flag = (self.F & Flags.H) / Flags.H
+        n_flag = (self.F & Flags.N) / Flags.N
+        print "DAA A: %02x, cflag: %d, h_flag: %d" % (self.A, c_flag, h_flag)
         # Leave N flag alone
-        self.F &= Flags.N
-        # Identify subtractions
-        if (h_flag and (self.A & 0x0F) >= 0x6) or (c_flag and (self.A & 0xF0) >= 0x60):
-            if h_flag:
-                self.A = (self.A - 0x06) & 0xFF
-            if c_flag:
-                self.A = (self.A - 0x60) & 0xFF
-                self.F |= Flags.C
+        if not n_flag:
+            # Last op was an addition
+            if h_flag or (self.A & 0xF) > 9:
+                self.A += 0x06
+            if c_flag or self.A > 0x9F:
+                self.A += 0x60
         else:
-            if h_flag or (self.A & 0x0F) >= 0x0A:
-                if (self.A & 0xF0) == 0xF0:
-                    self.F |= Flags.C
-                self.A = (self.A + 0x06) & 0xFF
-            if c_flag or (self.A & 0xF0) >= 0xA0:
-                self.A = (self.A + 0x60) & 0xFF
-                self.F |= Flags.C
+            if h_flag:
+                self.A = (self.A - 6) & 0xFF
+            if c_flag:
+                self.A -= 0x60
+        self.F &= ~(Flags.H | Flags.Z)
+        if (self.A & 0x100) == 0x100:
+            self.F |= Flags.C
+
+        self.A &= 0xFF
         if self.A == 0:
             self.F |= Flags.Z
+        print "Output A: %02x, C: %d" % (self.A, (self.F & Flags.C) / Flags.C)
+        print
 
     def op_28(self, offset):
         # JRZ n
