@@ -2129,20 +2129,16 @@ H: %02x   L: %02x   Ints: %s
 
     def op_E8(self, data):
         # ADD SP, #
+        self.F = 0
+        if (self.SP & 0xF) + (data & 0xF) > 0xF:
+            self.F |= Flags.H
+        if (self.SP & 0xFF) + (data & 0xFF) > 0xFF:
+            self.F |= Flags.C
+
         # Fix sign
         if data > 0x7F:
             data = data - 0x100
-        self.F = 0
-        if data > 0:
-            if (self.SP & 0xF) + (data & 0xF) > 0xF:
-                self.F |= Flags.H
-            if (self.SP & 0xFF) + data > 0xFF:
-                self.F |= Flags.C
-        else:
-            if (self.SP & 0xF) < (data & 0xF):
-                self.F |= Flags.H
-            if (self.SP & 0xFF) < (data & 0xFF):
-                self.F |= Flags.C
+
         self.SP = (self.SP + data) & 0xFFFF
 
     def op_E9(self):
