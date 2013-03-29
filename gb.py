@@ -9,13 +9,7 @@ class Gameboy:
         self.ram.joypad_obj = self.joypad
 
     def step_instruction(self):
-        #print self.cpu
-        if self.cpu.halted:
-            self.cpu.clock += 4
-            self.cpu.dt = 4
-            self.cpu.update_clock()
-        else:
-            self.cpu.execute_next_instruction()
+        self.cpu.step()
         self.gpu.update(self.cpu.dt)
 
     def step_frame(self):
@@ -401,6 +395,38 @@ H: %02x   L: %02x   Ints: %s
        self.D, self.E, str(self.halted),
        self.H, self.L, str(self.interrupts))
 
+    def step(self):
+        self.check_interrupts()
+        if not self.halted:
+            self.execute_next_instruction()
+        else:
+            self.dt = 4
+            self.clock += 4
+        self.update_clock()
+
+    def check_interrupts(self):
+        if not self.interrupts:
+            return
+        enabled = self.ram.read(0xFFFF)
+        triggered = self.ram.read(0xFF0F)
+        for i in range(5):
+            if (enabled & (1 << i)) and (triggered & (1 << i)):
+                # Clear this interrupt
+                self.ram.write(0xFF0F, triggered & ~(1 << i))
+                # Push PC
+                self.SP = (self.SP - 2) & 0xFFFF
+                self.ram.write(self.SP, self.PC & 0xFF)
+                self.ram.write(self.SP+1, self.PC >> 8)
+                # Disable interrupts
+                self.interrupts = False
+                # Unhalt
+                self.halted = False
+                # Jump to appropriate address
+                self.PC = 0x40 + i * 0x8
+
+                # Don't do more than one interrupt at once!
+                break
+
     def execute_next_instruction(self):
         op = self.ram.read(self.PC)
         self.PC += 1
@@ -419,8 +445,6 @@ H: %02x   L: %02x   Ints: %s
         self.clock += op_details[2]
         self.dt = op_details[2]
         self.used_ops.add(op)
-
-        self.update_clock()
 
     def update_clock(self):
         # update divider register
@@ -3818,88 +3842,28 @@ H: %02x   L: %02x   Ints: %s
 
     def int_vblank(self):
         # Attempt to setup a vblank interrupt
-        if self.interrupts:
-            if self.ram.read(0xFFFF) & 0x1 == 0x1:
-                # Go!
-                # self.ram.write(0xFF0F, 0x1)
-                # Push PC onto stack
-                self.SP = (self.SP - 2) & 0xFFFF
-                self.ram.write(self.SP, self.PC & 0xFF)
-                self.ram.write(self.SP+1, self.PC >> 8)
-                # Disable interrupts
-                self.interrupts = False
-                # Unhalt
-                self.halted = False
-                # Jump to 0x40
-                self.PC = 0x40
+        ints = self.ram.read(0xFF0F)
+        self.ram.write(0xFF0F, ints | 0x1)
 
     def int_lcds(self):
         # Attempt to setup a LCD stat interrupt
-        if self.interrupts:
-            if self.ram.read(0xFFFF) & 0x2 == 0x2:
-                # Go!
-                # self.ram.write(0xFF0F, 0x2)
-                # Push PC onto stack
-                self.SP = (self.SP - 2) & 0xFFFF
-                self.ram.write(self.SP, self.PC & 0xFF)
-                self.ram.write(self.SP+1, self.PC >> 8)
-                # Disable interrupts
-                self.interrupts = False
-                # Unhalt
-                self.halted = False
-                # Jump to 0x48
-                self.PC = 0x48
+        ints = self.ram.read(0xFF0F)
+        self.ram.write(0xFF0F, ints | 0x2)
 
     def int_timer(self):
         # Attempt to setup a timer interrupt
-        if self.interrupts:
-            if self.ram.read(0xFFFF) & 0x4 == 0x4:
-                # Go!
-                # self.ram.write(0xFF0F, 0x4)
-                # Push PC onto stack
-                self.SP = (self.SP - 2) & 0xFFFF
-                self.ram.write(self.SP, self.PC & 0xFF)
-                self.ram.write(self.SP+1, self.PC >> 8)
-                # Disable interrupts
-                self.interrupts = False
-                # Unhalt
-                self.halted = False
-                # Jump to 0x50
-                self.PC = 0x50
+        ints = self.ram.read(0xFF0F)
+        self.ram.write(0xFF0F, ints | 0x4)
 
     def int_serial(self):
         # Attempt to setup a serial interrupt
-        if self.interrupts:
-            if self.ram.read(0xFFFF) & 0x8 == 0x8:
-                # Go!
-                # self.ram.write(0xFF0F, 0x8)
-                # Push PC onto stack
-                self.SP = (self.SP - 2) & 0xFFFF
-                self.ram.write(self.SP, self.PC & 0xFF)
-                self.ram.write(self.SP+1, self.PC >> 8)
-                # Disable interrupts
-                self.interrupts = False
-                # Unhalt
-                self.halted = False
-                # Jump to 0x58
-                self.PC = 0x58
+        ints = self.ram.read(0xFF0F)
+        self.ram.write(0xFF0F, ints | 0x8)
 
     def int_joypad(self):
         # Attempt to setup a joypad interrupt
-        if self.interrupts:
-            if self.ram.read(0xFFFF) & 0x10 == 0x10:
-                # Go!
-                # self.ram.write(0xFF0F, 0x10)
-                # Push PC onto stack
-                self.SP = (self.SP - 2) & 0xFFFF
-                self.ram.write(self.SP, self.PC & 0xFF)
-                self.ram.write(self.SP+1, self.PC >> 8)
-                # Disable interrupts
-                self.interrupts = False
-                # Unhalt
-                self.halted = False
-                # Jump to 0x60
-                self.PC = 0x60
+        ints = self.ram.read(0xFF0F)
+        self.ram.write(0xFF0F, ints | 0x10)
 
 class gb_ram(object):
     def __init__(self):
