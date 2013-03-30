@@ -8,7 +8,6 @@ def main(rom_file):
     game.load_rom(rom_file)
     def advance():
         game.step_frame()
-        #print game.ram.dump()
         disp.update(game.gpu.pixels)
         disp.root.after(1, advance)
     disp.root.after(1, advance)

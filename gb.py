@@ -480,6 +480,15 @@ H: %02x   L: %02x   Ints: %s
                 else:
                     self.ram.write(0xFF05, counter + 1)
 
+        if self.ram.mbc_type == 3:
+            # MBC3 real time clock
+            if (self.ram.mbc3_rtc_dh & 0x40) == 0:
+                # Not halted
+                self.ram.mbc3_rtc_countdown -= self.dt
+                if self.ram.mbc3_rtc_countdown <= 0:
+                    self.ram.mbc3_rtc_countdown += self.ram.mbc3_rtc_cycles_per_second
+                    self.ram.mbc3_rtc_count += 1
+
     def op_00(self):
         # NOP
         pass
@@ -3870,7 +3879,7 @@ class gb_ram(object):
         self.joypad_obj = None # joypad obj for input register
         self.rom = [] # Cartridge ROM
         self.vram = [0x00] * 0x2000 # Video RAM
-        self.eram = [0x00] * 0x2000 # External RAM
+        self.eram = [0x00] * 0x8000 # External RAM
         self.iram = [0x00] * 0x2000 # Internal RAM
         self.sprite_info = [0x00] * 0xA0
         self.zram = [0x00] * 0x80 # Zero-page RAM
@@ -3903,6 +3912,19 @@ class gb_ram(object):
         self.mbc1_mode = 0 # 0 = 16/8 mode, 1 = 4/32 mode
         self.mbc1_rom_bank = 1 # 5/7 bit rom bank index
         self.mbc1_ram_bank = 0 # 2 bit ram bank index
+
+        # MBC3 registers
+        self.mbc3_rom_bank = 1
+        self.mbc3_ram_bank = 0 # Also holds selected RTC register
+        self.mbc3_rtc_count = 0 # Ticks except when halt flag is set in dh
+        self.mbc3_rtc_cycles_per_second = 4194304
+        self.mbc3_rtc_countdown = self.mbc3_rtc_cycles_per_second
+        self.mbc3_rtc_s = 0
+        self.mbc3_rtc_m = 0
+        self.mbc3_rtc_h = 0
+        self.mbc3_rtc_dl = 0
+        self.mbc3_rtc_dh = 0
+        self.mbc3_latch = 0
 
     def load_rom(self, fname):
         rom_string = open(fname).read()
@@ -3949,13 +3971,29 @@ class gb_ram(object):
             return self.iram[p - 0xC000]
         elif p >= 0xA000:
             # External RAM
-            return self.eram[p - 0xA000]
+            if self.mbc_type == 3:
+                if self.mbc3_ram_bank < 4:
+                    return self.eram[p - 0xA000 + 0x2000 * self.mbc3_ram_bank]
+                elif self.mbc3_ram_bank == 0x08:
+                    return self.mbc3_rtc_s
+                elif self.mbc3_ram_bank == 0x09:
+                    return self.mbc3_rtc_m
+                elif self.mbc3_ram_bank == 0x0A:
+                    return self.mbc3_rtc_h
+                elif self.mbc3_ram_bank == 0x0B:
+                    return self.mbc3_rtc_dl
+                elif self.mbc3_ram_bank == 0x0C:
+                    return self.mbc3_rtc_dh
+                else:
+                    assert False, "Invalid RAM Bank number %x" % self.mbc3_ram_bank
+            else:
+                return self.eram[p - 0xA000]
         elif p >= 0x8000:
             # Graphics RAM
             return self.vram[p - 0x8000]
         elif p >= 0x4000:
             # ROM, switchable bank
-            # TODO - finish switching
+            # TODO - Implement all MBCs
             if self.mbc_type == 0:
                 return self.rom[p]
             elif self.mbc_type == 1:
@@ -3963,6 +4001,11 @@ class gb_ram(object):
                     return self.rom[p]
                 else:
                     return self.rom[p + 0x4000 * (self.mbc1_rom_bank - 1)]
+            elif self.mbc_type == 3:
+                if self.mbc3_rom_bank == 0:
+                    return self.rom[p]
+                else:
+                    return self.rom[p + 0x4000 * (self.mbc3_rom_bank - 1)]
             else:
                 assert False, "This MBC type not implemented"
         else:
@@ -4004,7 +4047,26 @@ class gb_ram(object):
             self.iram[p - 0xC000] = d
         elif p >= 0xA000:
             # External RAM
-            self.eram[p - 0xA000] = d
+            if self.mbc_type == 3:
+                if self.mbc3_ram_bank < 0x4:
+                    self.eram[p - 0xA000 + 0x2000 * self.mbc3_ram_bank] = d
+                else:
+                    # Write to RTC register
+                    if self.mbc3_ram_bank == 0x8:
+                        self.mbc3_rtc_s = d
+                    elif self.mbc3_ram_bank == 0x9:
+                        self.mbc3_rtc_m = d
+                    elif self.mbc3_ram_bank == 0xA:
+                        self.mbc3_rtc_h = d
+                    elif self.mbc3_ram_bank == 0xB:
+                        self.mbc3_rtc_dl = d
+                    elif self.mbc_3_ram_bank == 0xC:
+                        self.mbc3_rtc_dh = d
+                    # Update self.mbc3_rtc_count
+                    day_count = ((self.mbc3_rtc_dh & 1) << 8) + self.mbc3_rtc_dl
+                    self.mbc3_rtc_count = day_count * 86400 + self.mbc3_rtc_h * 3600 + self.mbc3_rtc_m * 60 + self.mbc_rtc_s
+            else:
+                self.eram[p - 0xA000] = d
         elif p >= 0x8000:
             # Graphics RAM
             self.vram[p - 0x8000] = d
@@ -4030,6 +4092,31 @@ class gb_ram(object):
                 else:
                     # Technically should enable/disable RAM bank
                     pass
+            elif self.mbc_type == 3:
+                if p >= 0x6000:
+                    if d == 1 and self.mbc3_latch == 0:
+                        # Latch clock data
+                        self.mbc3_rtc_s = self.mbc3_rtc_count % 60
+                        self.mbc3_rtc_m = (self.mbc3_rtc_count / 60) % 60
+                        self.mbc3_rtc_h = (self.mbc3_rtc_count / 3600) % 24
+                        self.mbc3_rtc_dl = (self.mbc3_rtc_count / 86400) & 0xFF
+                        self.mbc3_rtc_dh &= 0xFE
+                        self.mbc3_rtc_dh |= ((self.mbc3_rtc_count / 86400) >> 8) & 1
+                        if self.mbc3_rtc_count > 44236800:
+                            self.mbc3_rtc_dh |= 0x80
+                    self.mbc3_latch = d
+                elif p >= 0x4000:
+                    self.mbc3_ram_bank = d
+                elif p >= 0x2000:
+                    self.mbc3_rom_bank = d
+                else:
+                    # Technically should enable RAM and timer, we'll just have them always on for convenience
+                    pass
+            elif self.mbc_type == 0:
+                # Do nothing
+                pass
+            else:
+                assert False, "MBC type %d not implemented" % self.mbc_type
             return
 
 class GPUFlags:
@@ -4061,7 +4148,7 @@ GPU Mode: %d    Mode Clock: %d    Line: %3d (%02x)
     def pixmap_str(self):
         return '\n'.join(''.join(str(p) for p in pix_row) for pix_row in self.pixels)
 
-    # dt is the amount of itme since the last update
+    # dt is the number of cycles since the last update
     def update(self, dt):
         self.modeclock += dt
         if self.mode == 2:
@@ -4117,8 +4204,6 @@ GPU Mode: %d    Mode Clock: %d    Line: %3d (%02x)
             else:
                 map_offset = 0x1C00
 
-            tileset_offset = 0x0000
-
             map_line = ((self.line + scy) & 0xFF) >> 3
             pix_line = ((self.line + scy) & 0xFF) & 7
             # The tiles for this line
@@ -4131,11 +4216,9 @@ GPU Mode: %d    Mode Clock: %d    Line: %3d (%02x)
 
                 tile_no = tiles[tile_index]
 
-                # look up the tile
                 # Account for different location of tileset 1
-                # Out for now bcause not sure about this
-                # if (flags & GPUFlags.BGSET) == GPUFlags.BGSET and tile_no < 0x80:
-                #     tile_no += 0x100
+                if (flags & GPUFlags.BGSET) == 0 and tile_no < 0x80:
+                    tile_no += 0x100
 
                 tile_lo = self.ram.vram[tile_no * 0x10 + pix_line * 2]
                 tile_hi = self.ram.vram[tile_no * 0x10 + pix_line * 2 + 1]
@@ -4145,6 +4228,41 @@ GPU Mode: %d    Mode Clock: %d    Line: %3d (%02x)
 
                 pallette_index = pix_hi * 2 + pix_lo 
                 self.pixels[self.line][pix] = (bg_pallette >> (pallette_index * 2)) & 3
+        if (flags & GPUFlags.WINON) == GPUFlags.WINON:
+            # Window layer
+            x_pos = self.ram.read(0xFF4B) - 7
+            y_pos = self.ram.read(0xFF4A)
+            
+            if (flags & GPUFlags.WINMAP) == 0:
+                map_offset = 0x1800
+            else:
+                map_offset = 0x1C00
+
+            bg_pallette = self.ram.mmio[0x47]
+
+            if self.line >= y_pos:
+                map_line = (self.line - y_pos) / 8
+                pix_line = (self.line - y_pos) & 7
+
+                tiles = self.ram.vram[map_offset + map_line * 32 : map_offset + (map_line + 1) * 32]
+
+                for pix in range(x_pos, 160):
+                    tile_index = (pix - x_pos) >> 3
+                    tile_bit = 7 - ((pix - x_pos) & 7)
+
+                    tile_no = tiles[tile_index]
+
+                    if (flags & GPUFlags.BGSET) == 0 and tile_no < 0x80:
+                        tile_no += 0x100
+
+                    tile_lo = self.ram.vram[tile_no * 0x10 + pix_line * 2]
+                    tile_hi = self.ram.vram[tile_no * 0x10 + pix_line * 2 + 1]
+
+                    pix_hi = ((tile_hi & (1 << tile_bit)) >> tile_bit)
+                    pix_lo = ((tile_lo & (1 << tile_bit)) >> tile_bit)
+
+                    pallette_index = pix_hi * 2 + pix_lo
+                    self.pixels[self.line][pix] = (bg_pallette >> (pallette_index * 2)) & 3
         if (flags & GPUFlags.SPON) == GPUFlags.SPON:
             # Draw sprites
             sprite_mode = flags & GPUFlags.SPSZ
@@ -4184,10 +4302,11 @@ GPU Mode: %d    Mode Clock: %d    Line: %3d (%02x)
                             pix_lo = ((tile_lo & (1 << tile_bit)) >> tile_bit)
 
                             pallette_index = pix_hi * 2 + pix_lo
-                            color = (pallette >> (pallette_index * 2)) & 3
-                            
-                            if (above or self.pixels[self.line][pix] == 0) and color != 0:
-                                self.pixels[self.line][pix] = color
+                            if pallette_index != 0:
+                                color = (pallette >> (pallette_index * 2)) & 3
+                                
+                                if (above or self.pixels[self.line][pix] == 0):
+                                    self.pixels[self.line][pix] = color
                 else:
                     # 8x16 mode
                     pass
